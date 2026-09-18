@@ -1,0 +1,597 @@
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+
+-- ==========================================
+-- EGG DATABASE (ADDED BLACKHOLE EGG)
+-- ==========================================
+local trackedEggs = {
+    ["152975769"] = {DisplayName = "Flaming Egg", Price = "Rare", Rarity = "Fire", Color = Color3.fromRGB(255, 120, 30)},
+    ["70549049033717"] = {DisplayName = "Sinister Egg", Price = "Secret", Rarity = "Dark", Color = Color3.fromRGB(220, 40, 60)},
+    ["131792796847596"] = {DisplayName = "Galaxy Egg", Price = "1.5B", Rarity = "Divine", Color = Color3.fromRGB(180, 100, 255)},
+    ["95155753812330"] = {DisplayName = "Soul Egg", Price = "Ethereal", Rarity = "Ghost", Color = Color3.fromRGB(120, 220, 255)},
+    ["109698896973127"] = {DisplayName = "Skull Egg", Price = "Dark", Rarity = "Bone", Color = Color3.fromRGB(180, 180, 180)},
+    ["6932488731"] = {DisplayName = "Blackhole Egg", Price = "100B", Rarity = "Ethereal", Color = Color3.fromRGB(80, 80, 80)} -- The ID you found!
+}
+
+local excludePaths = {"Plots", "Ranch"} 
+local activeEggs = {} 
+local selectedTargetEgg = nil
+local currentEspMode = "Straight" -- Options: "Straight", "Upper", "Arrow"
+local espModes = {"Straight", "Upper", "Arrow"}
+local currentEspIndex = 1
+
+-- ==========================================
+-- 1. CREATE MODERN AESTHETIC GUI
+-- ==========================================
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "EggTrackerGui"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+
+local success = pcall(function()
+    if gethui then
+        screenGui.Parent = gethui()
+    else
+        if game:GetService("CoreGui"):FindFirstChild("EggTrackerGui") then
+            game:GetService("CoreGui").EggTrackerGui:Destroy()
+        end
+        screenGui.Parent = game:GetService("CoreGui")
+    end
+end)
+if not success then
+    screenGui.Parent = player:WaitForChild("PlayerGui")
+end
+
+-- Main Window Container
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 290, 0, 350)
+mainFrame.Position = UDim2.new(0, 20, 0.5, -175)
+mainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+mainFrame.BackgroundTransparency = 0.15
+mainFrame.BorderSizePixel = 0
+mainFrame.ClipsDescendants = true
+mainFrame.Parent = screenGui
+
+local frameCorner = Instance.new("UICorner")
+frameCorner.CornerRadius = UDim.new(0, 12)
+frameCorner.Parent = mainFrame
+
+local frameStroke = Instance.new("UIStroke")
+frameStroke.Color = Color3.fromRGB(255, 255, 255)
+frameStroke.Transparency = 0.88
+frameStroke.Thickness = 1.5
+frameStroke.Parent = mainFrame
+
+-- Title Bar (Draggable Header)
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 42)
+titleBar.BackgroundTransparency = 1
+titleBar.Parent = mainFrame
+
+local titleText = Instance.new("TextLabel")
+titleText.Size = UDim2.new(1, -60, 1, 0)
+titleText.Position = UDim2.new(0, 15, 0, 0)
+titleText.BackgroundTransparency = 1
+titleText.Text = "EGG RADAR"
+titleText.TextColor3 = Color3.fromRGB(240, 240, 245)
+titleText.Font = Enum.Font.GothamBold
+titleText.TextSize = 13
+titleText.TextXAlignment = Enum.TextXAlignment.Left
+titleText.Parent = titleBar
+
+local subtitleText = Instance.new("TextLabel")
+subtitleText.Size = UDim2.new(1, -60, 0, 12)
+subtitleText.Position = UDim2.new(0, 15, 0, 24)
+subtitleText.BackgroundTransparency = 1
+subtitleText.Text = "Mesh ID Tracker & Navigation ESP"
+subtitleText.TextColor3 = Color3.fromRGB(130, 135, 150)
+subtitleText.Font = Enum.Font.Gotham
+subtitleText.TextSize = 10
+subtitleText.TextXAlignment = Enum.TextXAlignment.Left
+subtitleText.Parent = titleBar
+
+-- Exit / Close Button
+local exitBtn = Instance.new("TextButton")
+exitBtn.Size = UDim2.new(0, 26, 0, 26)
+exitBtn.Position = UDim2.new(1, -34, 0, 8)
+exitBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 80)
+exitBtn.BackgroundTransparency = 0.8
+exitBtn.Text = "✕"
+exitBtn.TextColor3 = Color3.fromRGB(255, 100, 110)
+exitBtn.Font = Enum.Font.GothamBold
+exitBtn.TextSize = 12
+exitBtn.Parent = titleBar
+
+local exitCorner = Instance.new("UICorner")
+exitCorner.CornerRadius = UDim.new(0, 6)
+exitCorner.Parent = exitBtn
+
+local headerDivider = Instance.new("Frame")
+headerDivider.Size = UDim2.new(1, -20, 0, 1)
+headerDivider.Position = UDim2.new(0, 10, 1, -1)
+headerDivider.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+headerDivider.BackgroundTransparency = 0.92
+headerDivider.BorderSizePixel = 0
+headerDivider.Parent = titleBar
+
+-- Controls Bar (ESP Mode Switcher)
+local controlBar = Instance.new("Frame")
+controlBar.Size = UDim2.new(1, -20, 0, 30)
+controlBar.Position = UDim2.new(0, 10, 0, 46)
+controlBar.BackgroundColor3 = Color3.fromRGB(26, 28, 36)
+controlBar.BackgroundTransparency = 0.4
+controlBar.Parent = mainFrame
+
+local controlCorner = Instance.new("UICorner")
+controlCorner.CornerRadius = UDim.new(0, 6)
+controlCorner.Parent = controlBar
+
+local modeLabel = Instance.new("TextLabel")
+modeLabel.Size = UDim2.new(0.4, 0, 1, 0)
+modeLabel.Position = UDim2.new(0, 8, 0, 0)
+modeLabel.BackgroundTransparency = 1
+modeLabel.Text = "ESP Mode:"
+modeLabel.TextColor3 = Color3.fromRGB(150, 155, 170)
+modeLabel.Font = Enum.Font.Gotham
+modeLabel.TextSize = 11
+modeLabel.TextXAlignment = Enum.TextXAlignment.Left
+modeLabel.Parent = controlBar
+
+local modeBtn = Instance.new("TextButton")
+modeBtn.Size = UDim2.new(0.55, 0, 0.8, 0)
+modeBtn.Position = UDim2.new(0.42, 0, 0.1, 0)
+modeBtn.BackgroundColor3 = Color3.fromRGB(40, 45, 60)
+modeBtn.Text = "Straight Line"
+modeBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
+modeBtn.Font = Enum.Font.GothamBold
+modeBtn.TextSize = 10
+modeBtn.Parent = controlBar
+
+local modeBtnCorner = Instance.new("UICorner")
+modeBtnCorner.CornerRadius = UDim.new(0, 4)
+modeBtnCorner.Parent = modeBtn
+
+modeBtn.MouseButton1Click:Connect(function()
+    currentEspIndex = (currentEspIndex % #espModes) + 1
+    currentEspMode = espModes[currentEspIndex]
+    
+    if currentEspMode == "Straight" then
+        modeBtn.Text = "Straight Line"
+    elseif currentEspMode == "Upper" then
+        modeBtn.Text = "Upper Line"
+    elseif currentEspMode == "Arrow" then
+        modeBtn.Text = "Nav Arrow"
+    end
+end)
+
+-- Dragging Logic
+local dragging, dragInput, dragStart, startPos
+local function update(input)
+    local delta = input.Position - dragStart
+    mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+titleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+titleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+-- Scroll Area
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1, -16, 1, -88)
+scrollFrame.Position = UDim2.new(0, 8, 0, 82)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.ScrollBarThickness = 3
+scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 105, 120)
+scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollFrame.BorderSizePixel = 0
+scrollFrame.Parent = mainFrame
+
+local uiLayout = Instance.new("UIListLayout")
+uiLayout.Padding = UDim.new(0, 6)
+uiLayout.SortOrder = Enum.SortOrder.LayoutOrder
+uiLayout.Parent = scrollFrame
+
+local uiPadding = Instance.new("UIPadding")
+uiPadding.PaddingTop = UDim.new(0, 2)
+uiPadding.PaddingBottom = UDim.new(0, 6)
+uiPadding.PaddingLeft = UDim.new(0, 2)
+uiPadding.PaddingRight = UDim.new(0, 4)
+uiPadding.Parent = scrollFrame
+
+-- Egg Item Cards
+local eggUI = {}
+
+for meshId, data in pairs(trackedEggs) do
+    local card = Instance.new("TextButton")
+    card.Size = UDim2.new(1, 0, 0, 46)
+    card.BackgroundColor3 = Color3.fromRGB(26, 28, 36)
+    card.BackgroundTransparency = 0.3
+    card.BorderSizePixel = 0
+    card.AutoButtonColor = false
+    card.Text = ""
+    card.Parent = scrollFrame
+    
+    local cardCorner = Instance.new("UICorner")
+    cardCorner.CornerRadius = UDim.new(0, 8)
+    cardCorner.Parent = card
+    
+    local cardStroke = Instance.new("UIStroke")
+    cardStroke.Color = Color3.fromRGB(255, 255, 255)
+    cardStroke.Transparency = 0.94
+    cardStroke.Thickness = 1
+    cardStroke.Parent = card
+
+    -- Left Accent Bar
+    local accent = Instance.new("Frame")
+    accent.Size = UDim2.new(0, 3, 1, -12)
+    accent.Position = UDim2.new(0, 6, 0, 6)
+    accent.BackgroundColor3 = data.Color
+    accent.BorderSizePixel = 0
+    accent.Parent = card
+    
+    local accentCorner = Instance.new("UICorner")
+    accentCorner.CornerRadius = UDim.new(0, 4)
+    accentCorner.Parent = accent
+
+    -- Egg Title
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(0.6, -15, 0, 18)
+    nameLabel.Position = UDim2.new(0, 16, 0, 6)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = data.DisplayName
+    nameLabel.TextColor3 = Color3.fromRGB(235, 235, 240)
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextSize = 12
+    nameLabel.Parent = card
+
+    -- Sub-details
+    local infoLabel = Instance.new("TextLabel")
+    infoLabel.Size = UDim2.new(0.6, -15, 0, 14)
+    infoLabel.Position = UDim2.new(0, 16, 0, 24)
+    infoLabel.BackgroundTransparency = 1
+    infoLabel.Text = data.Rarity .. " • " .. data.Price
+    infoLabel.TextColor3 = Color3.fromRGB(130, 135, 150)
+    infoLabel.TextXAlignment = Enum.TextXAlignment.Left
+    infoLabel.Font = Enum.Font.Gotham
+    infoLabel.TextSize = 10
+    infoLabel.Parent = card
+
+    -- Dynamic Status Dot
+    local statusDot = Instance.new("Frame")
+    statusDot.Size = UDim2.new(0, 6, 0, 6)
+    statusDot.Position = UDim2.new(1, -85, 0.5, -3)
+    statusDot.BackgroundColor3 = Color3.fromRGB(240, 70, 70)
+    statusDot.BorderSizePixel = 0
+    statusDot.Parent = card
+
+    local dotCorner = Instance.new("UICorner")
+    dotCorner.CornerRadius = UDim.new(1, 0)
+    dotCorner.Parent = statusDot
+
+    -- Status Text Label
+    local statusLabel = Instance.new("TextLabel")
+    statusLabel.Size = UDim2.new(0, 72, 0, 20)
+    statusLabel.Position = UDim2.new(1, -75, 0.5, -10)
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.Text = "UNAVAILABLE"
+    statusLabel.TextColor3 = Color3.fromRGB(150, 155, 170)
+    statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+    statusLabel.Font = Enum.Font.GothamBold
+    statusLabel.TextSize = 9
+    statusLabel.Parent = card
+
+    card.MouseButton1Click:Connect(function()
+        selectedTargetEgg = data.DisplayName
+        for _, ui in pairs(eggUI) do
+            ui.Card.BackgroundColor3 = Color3.fromRGB(26, 28, 36)
+        end
+        card.BackgroundColor3 = Color3.fromRGB(45, 55, 75)
+    end)
+
+    eggUI[data.DisplayName] = {Card = card, Status = statusLabel, Dot = statusDot, Stroke = cardStroke}
+end
+
+-- Cleanup and Exit Execution
+local function cleanupAllESP()
+    for egg, data in pairs(activeEggs) do
+        if egg and egg.Parent then
+            egg:SetAttribute("ZiplineActive", nil)
+            local hl = egg:FindFirstChild("TrackerHighlight")
+            if hl then hl:Destroy() end
+            local tag = egg:FindFirstChild("TrackerTag")
+            if tag then tag:Destroy() end
+        end
+    end
+    activeEggs = {}
+    
+    local char = player.Character
+    if char then
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local att = hrp:FindFirstChild("PlayerZiplineAtt")
+            if att then att:Destroy() end
+            local arrowGui = hrp:FindFirstChild("NavArrowGui")
+            if arrowGui then arrowGui:Destroy() end
+        end
+    end
+end
+
+exitBtn.MouseButton1Click:Connect(function()
+    cleanupAllESP()
+    screenGui:Destroy()
+end)
+
+-- ==========================================
+-- 2. ESP & ZIPLINE LOGIC
+-- ==========================================
+local function extractId(str)
+    if not str or str == "" then return nil end
+    return string.match(str, "%d+")
+end
+
+local function getAdornee(obj)
+    if obj:IsA("BasePart") then return obj end
+    if obj:IsA("Model") then
+        if obj.PrimaryPart then return obj.PrimaryPart end
+        return obj:FindFirstChildWhichIsA("BasePart", true)
+    end
+    return nil
+end
+
+local function setupZipline(egg, displayName)
+    if egg:GetAttribute("ZiplineActive") then return end
+    local adornee = getAdornee(egg)
+    if not adornee then return end
+
+    local espColor = Color3.new(1, 1, 1)
+    for _, data in pairs(trackedEggs) do
+        if data.DisplayName == displayName then
+            espColor = data.Color
+            break
+        end
+    end
+
+    egg:SetAttribute("ZiplineActive", true)
+
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "TrackerHighlight"
+    highlight.FillColor = espColor
+    highlight.OutlineColor = Color3.new(1, 1, 1)
+    highlight.FillTransparency = 0.35
+    highlight.Parent = egg
+
+    local eggAtt = Instance.new("Attachment")
+    eggAtt.Name = "EggZiplineAtt"
+    eggAtt.Parent = adornee
+
+    local beam = Instance.new("Beam")
+    beam.Name = "ZiplineBeam"
+    beam.Attachment1 = eggAtt
+    beam.Color = ColorSequence.new(espColor)
+    beam.Width0 = 0.12
+    beam.Width1 = 0.12
+    beam.FaceCamera = true
+    beam.Transparency = NumberSequence.new(0.25)
+    beam.Parent = adornee
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "TrackerTag"
+    billboard.Size = UDim2.new(0, 140, 0, 26)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Adornee = adornee
+    billboard.Parent = egg
+
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(1, 0, 1, 0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = displayName
+    nameLabel.TextColor3 = espColor
+    nameLabel.TextStrokeTransparency = 0.2
+    nameLabel.TextStrokeColor3 = Color3.fromRGB(10, 10, 15)
+    nameLabel.TextScaled = true
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.Parent = billboard
+
+    activeEggs[egg] = {Beam = beam, Name = displayName, Adornee = adornee}
+end
+
+local function checkEggByMesh(obj)
+    if not (obj:IsA("BasePart") or obj:IsA("Model")) then return nil end
+    
+    local path = obj:GetFullName()
+    for _, exclude in ipairs(excludePaths) do
+        if string.find(path, exclude) then return nil end
+    end
+    
+    if obj:IsA("MeshPart") then
+        local meshId = extractId(obj.MeshId)
+        if meshId and trackedEggs[meshId] then
+            return trackedEggs[meshId].DisplayName
+        end
+    end
+    
+    local specialMesh = obj:FindFirstChildWhichIsA("SpecialMesh", true)
+    if specialMesh then
+        local meshId = extractId(specialMesh.MeshId)
+        if meshId and trackedEggs[meshId] then
+            return trackedEggs[meshId].DisplayName
+        end
+    end
+    
+    return nil
+end
+
+-- Overhead Dynamic Nav-Arrow Creation
+local function getOrCreateArrow(hrp)
+    local arrowGui = hrp:FindFirstChild("NavArrowGui")
+    if not arrowGui then
+        arrowGui = Instance.new("BillboardGui")
+        arrowGui.Name = "NavArrowGui"
+        arrowGui.Size = UDim2.new(0, 60, 0, 60)
+        arrowGui.StudsOffset = Vector3.new(0, 4.5, 0)
+        arrowGui.AlwaysOnTop = true
+        arrowGui.Adornee = hrp
+        arrowGui.Parent = hrp
+
+        local arrowLabel = Instance.new("TextLabel")
+        arrowLabel.Name = "ArrowText"
+        arrowLabel.Size = UDim2.new(1, 0, 1, 0)
+        arrowLabel.BackgroundTransparency = 1
+        arrowLabel.Text = "▲"
+        arrowLabel.TextColor3 = Color3.fromRGB(0, 255, 120)
+        arrowLabel.Font = Enum.Font.GothamBold
+        arrowLabel.TextSize = 36
+        arrowLabel.Parent = arrowGui
+    end
+    return arrowGui
+end
+
+-- ==========================================
+-- 3. BACKGROUND TRACKER & RENDER LOOPS
+-- ==========================================
+task.spawn(function()
+    while task.wait(1) do
+        local foundEggs = {}
+        
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            local displayName = checkEggByMesh(obj)
+            if displayName then
+                foundEggs[displayName] = true
+                setupZipline(obj, displayName)
+            end
+        end
+        
+        for displayName, ui in pairs(eggUI) do
+            if foundEggs[displayName] then
+                ui.Status.Text = "ACTIVE"
+                ui.Status.TextColor3 = Color3.fromRGB(60, 230, 120)
+                ui.Dot.BackgroundColor3 = Color3.fromRGB(60, 230, 120)
+                ui.Stroke.Transparency = 0.75
+                ui.Stroke.Color = Color3.fromRGB(60, 230, 120)
+            else
+                ui.Status.Text = "UNAVAILABLE"
+                ui.Status.TextColor3 = Color3.fromRGB(140, 145, 160)
+                ui.Dot.BackgroundColor3 = Color3.fromRGB(240, 70, 70)
+                ui.Stroke.Transparency = 0.94
+                ui.Stroke.Color = Color3.fromRGB(255, 255, 255)
+            end
+        end
+
+        for egg, _ in pairs(activeEggs) do
+            if not egg or not egg.Parent then
+                activeEggs[egg] = nil
+            end
+        end
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    local char = player.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    
+    if hrp then
+        if not hrp:FindFirstChild("PlayerZiplineAtt") then
+            local att = Instance.new("Attachment")
+            att.Name = "PlayerZiplineAtt"
+            att.Parent = hrp
+        end
+        
+        local playerAtt = hrp:FindFirstChild("PlayerZiplineAtt")
+        local targetEggPos = nil
+
+        for egg, data in pairs(activeEggs) do
+            if egg and egg.Parent and data.Beam and data.Beam.Parent then
+                data.Beam.Attachment0 = playerAtt
+                
+                -- Mode Adjustments
+                if currentEspMode == "Straight" then
+                    data.Beam.Enabled = true
+                    data.Beam.CurveSize0 = 0
+                    data.Beam.CurveSize1 = 0
+                elseif currentEspMode == "Upper" then
+                    data.Beam.Enabled = true
+                    data.Beam.CurveSize0 = 12
+                    data.Beam.CurveSize1 = -12
+                else
+                    data.Beam.Enabled = false
+                end
+
+                if selectedTargetEgg and data.Name == selectedTargetEgg then
+                    targetEggPos = data.Adornee.Position
+                end
+            else
+                activeEggs[egg] = nil
+            end
+        end
+
+        -- Render 3D Nav Arrow Rotation Guidance
+        local arrowGui = hrp:FindFirstChild("NavArrowGui")
+        if currentEspMode == "Arrow" and targetEggPos then
+            arrowGui = getOrCreateArrow(hrp)
+            arrowGui.Enabled = true
+            
+            local lookVector = hrp.CFrame.LookVector
+            local targetDir = (targetEggPos - hrp.Position).Unit
+            
+            local look2D = Vector2.new(lookVector.X, lookVector.Z).Unit
+            local target2D = Vector2.new(targetDir.X, targetDir.Z).Unit
+            
+            local angle = math.atan2(target2D.Y, target2D.X) - math.atan2(look2D.Y, look2D.X)
+            local degrees = math.deg(angle)
+            
+            local arrowText = arrowGui:FindFirstChild("ArrowText")
+            if arrowText then
+                arrowText.Rotation = -degrees
+                
+                -- Dynamic Alignment Color Feedback
+                local dotProduct = look2D:Dot(target2D)
+                if dotProduct > 0.85 then
+                    arrowText.TextColor3 = Color3.fromRGB(0, 255, 120) -- Facing directly towards
+                elseif dotProduct > 0.3 then
+                    arrowText.TextColor3 = Color3.fromRGB(255, 200, 50) -- Off-center
+                else
+                    arrowText.TextColor3 = Color3.fromRGB(255, 60, 60) -- Wrong direction
+                end
+            end
+        elseif arrowGui then
+            arrowGui.Enabled = false
+        end
+    end
+end)
+
+-- Notification
+pcall(function()
+    StarterGui:SetCore("SendNotification", {
+        Title = "Radar Ready",
+        Text = "Egg Navigation & Radar UI fully active.",
+        Duration = 4
+    })
+end)
