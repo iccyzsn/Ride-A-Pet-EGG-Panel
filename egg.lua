@@ -6,19 +6,19 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 
 -- ==========================================
--- EGG DATABASE (ADDED CHERUB EGG)
+-- EGG DATABASE
 -- ==========================================
 local trackedEggs = {
-    ["152975769"] = {DisplayName = "Flaming Egg", Icon = "🔥", Price = "Rare", Rarity = "Fire", Color = Color3.fromRGB(255, 120, 30)},
-    ["70549049033717"] = {DisplayName = "Sinister Egg", Icon = "😈", Price = "Secret", Rarity = "Dark", Color = Color3.fromRGB(220, 40, 60)},
-    ["131792796847596"] = {DisplayName = "Galaxy Egg", Icon = "🌌", Price = "1.5B", Rarity = "Divine", Color = Color3.fromRGB(180, 100, 255)},
-    ["95155753812330"] = {DisplayName = "Soul Egg", Icon = "👻", Price = "Ethereal", Rarity = "Ghost", Color = Color3.fromRGB(120, 220, 255)},
-    ["109698896973127"] = {DisplayName = "Skull Egg", Icon = "💀", Price = "Dark", Rarity = "Bone", Color = Color3.fromRGB(180, 180, 180)},
-    ["6932488731"] = {DisplayName = "Blackhole Egg", Icon = "🕳️", Price = "100B", Rarity = "Ethereal", Color = Color3.fromRGB(80, 80, 80)},
-    ["99624357990460"] = {DisplayName = "Cherub Egg", Icon = "😇", Price = "1T", Rarity = "Ethereal", Color = Color3.fromRGB(255, 255, 100)} -- The new ID you found!
+    ["152975769"] = {DisplayName = "Flaming Egg", Icon = "🔥", ImageId = "", Price = "Rare", Rarity = "Fire", Color = Color3.fromRGB(255, 120, 30)},
+    ["70549049033717"] = {DisplayName = "Sinister Egg", Icon = "😈", ImageId = "", Price = "Secret", Rarity = "Dark", Color = Color3.fromRGB(220, 40, 60)},
+    ["131792796847596"] = {DisplayName = "Galaxy Egg", Icon = "🌌", ImageId = "", Price = "1.5B", Rarity = "Divine", Color = Color3.fromRGB(180, 100, 255)},
+    ["95155753812330"] = {DisplayName = "Soul Egg", Icon = "👻", ImageId = "", Price = "Ethereal", Rarity = "Ghost", Color = Color3.fromRGB(120, 220, 255)},
+    ["109698896973127"] = {DisplayName = "Skull Egg", Icon = "💀", ImageId = "", Price = "Dark", Rarity = "Bone", Color = Color3.fromRGB(180, 180, 180)},
+    ["6932488731"] = {DisplayName = "Blackhole Egg", Icon = "🕳️", ImageId = "", Price = "100B", Rarity = "Ethereal", Color = Color3.fromRGB(80, 80, 80)},
+    ["99624357990460"] = {DisplayName = "Cherub Egg", Icon = "😇", ImageId = "", Price = "1T", Rarity = "Ethereal", Color = Color3.fromRGB(255, 255, 100)}
 }
 
-local excludePaths = {"Plots", "Ranch"} 
+-- Removed the excludePaths restriction that was causing the "Unavailable" bug
 local selectedTargetEgg = nil
 local currentTrackedInstance = nil
 local currentEspMode = "Straight"
@@ -190,13 +190,25 @@ for meshId, data in pairs(trackedEggs) do
     accentCorner.CornerRadius = UDim.new(0, 4)
     accentCorner.Parent = accent
 
-    local iconLabel = Instance.new("TextLabel")
+    -- Icon/Image Logic
+    local iconLabel
+    if data.ImageId and data.ImageId ~= "" then
+        iconLabel = Instance.new("ImageLabel")
+        iconLabel.Image = "rbxassetid://" .. data.ImageId
+        iconLabel.BackgroundColor3 = Color3.fromRGB(40, 45, 60)
+    else
+        iconLabel = Instance.new("TextLabel")
+        iconLabel.Text = data.Icon
+        iconLabel.TextSize = 20
+        iconLabel.BackgroundTransparency = 1
+    end
     iconLabel.Size = UDim2.new(0, 30, 0, 30)
     iconLabel.Position = UDim2.new(0, 16, 0.5, -15)
-    iconLabel.BackgroundTransparency = 1
-    iconLabel.Text = data.Icon
-    iconLabel.TextSize = 20
     iconLabel.Parent = card
+    
+    local iconCorner = Instance.new("UICorner")
+    iconCorner.CornerRadius = UDim.new(0, 6)
+    iconCorner.Parent = iconLabel
 
     local nameLabel = Instance.new("TextLabel")
     nameLabel.Size = UDim2.new(0.5, -15, 0, 18)
@@ -244,7 +256,7 @@ for meshId, data in pairs(trackedEggs) do
 
     card.MouseButton1Click:Connect(function()
         selectedTargetEgg = data.DisplayName
-        currentTrackedInstance = nil -- Reset tracking so it switches immediately
+        currentTrackedInstance = nil 
         for _, ui in pairs(eggUI) do
             ui.Card.BackgroundColor3 = Color3.fromRGB(28, 31, 38)
             ui.Stroke.Color = Color3.fromRGB(60, 65, 80)
@@ -315,10 +327,9 @@ end
 
 local function checkEggByMesh(obj)
     if not (obj:IsA("BasePart") or obj:IsA("Model")) then return nil end
-    local path = obj:GetFullName()
-    for _, exclude in ipairs(excludePaths) do
-        if string.find(path, exclude) then return nil end
-    end
+    
+    -- Removed the path exclusion here so it finds eggs everywhere
+    
     if obj:IsA("MeshPart") then
         local meshId = extractId(obj.MeshId)
         if meshId and trackedEggs[meshId] then return trackedEggs[meshId].DisplayName end
@@ -401,7 +412,6 @@ task.spawn(function()
         local foundEgg = nil
         local isAvailable = false
         
-        -- Scan for selected egg
         for _, obj in ipairs(Workspace:GetDescendants()) do
             local displayName = checkEggByMesh(obj)
             if displayName and displayName == selectedTargetEgg then
@@ -411,7 +421,6 @@ task.spawn(function()
             end
         end
 
-        -- Update UI Status
         if selectedTargetEgg and eggUI[selectedTargetEgg] then
             local ui = eggUI[selectedTargetEgg]
             if isAvailable then
@@ -425,7 +434,6 @@ task.spawn(function()
             end
         end
 
-        -- Apply ESP if found
         if foundEgg and currentTrackedInstance ~= foundEgg then
             currentTrackedInstance = foundEgg
             applyESP(foundEgg)
@@ -442,7 +450,6 @@ RunService.RenderStepped:Connect(function()
     local hum = char and char:FindFirstChildOfClass("Humanoid")
     
     if hrp then
-        -- Player Attachment for Beam
         if not hrp:FindFirstChild("PlayerRadarAtt") then
             local att = Instance.new("Attachment")
             att.Name = "PlayerRadarAtt"
@@ -450,7 +457,6 @@ RunService.RenderStepped:Connect(function()
         end
         local playerAtt = hrp:FindFirstChild("PlayerRadarAtt")
 
-        -- Nav Arrow GUI
         local arrowGui = hrp:FindFirstChild("NavArrowGui")
         if not arrowGui then
             arrowGui = Instance.new("BillboardGui")
@@ -483,20 +489,17 @@ RunService.RenderStepped:Connect(function()
             distLabel.Parent = arrowGui
         end
 
-        -- Update ESP and Arrow
         if currentTrackedInstance and currentTrackedInstance.Parent then
             local adornee = getAdornee(currentTrackedInstance)
             if adornee then
                 local dist = (adornee.Position - hrp.Position).Magnitude
                 
-                -- Beam Logic
                 local beam = adornee:FindFirstChild("RadarBeam")
                 if beam then
                     beam.Attachment0 = playerAtt
                     beam.Enabled = (currentEspMode == "Straight")
                 end
 
-                -- Arrow Logic
                 arrowGui.Enabled = (currentEspMode == "Arrow")
                 if currentEspMode == "Arrow" then
                     local lookVector = hrp.CFrame.LookVector
@@ -524,19 +527,18 @@ RunService.RenderStepped:Connect(function()
                     end
                 end
 
-                -- Auto Pickup Logic
                 if autoPickupEnabled and hum and hum.Health > 0 then
                     if dist > 5 then
                         hum:MoveTo(adornee.Position)
                     else
-                        hum:MoveTo(hrp.Position) -- Stop walking
+                        hum:MoveTo(hrp.Position)
                     end
                 end
             end
         else
             arrowGui.Enabled = false
             if autoPickupEnabled and hum and hum.Health > 0 then
-                hum:MoveTo(hrp.Position) -- Stop walking if egg gone
+                hum:MoveTo(hrp.Position)
             end
         end
     end
