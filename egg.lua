@@ -3,6 +3,7 @@ local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 
 -- ==========================================
@@ -18,13 +19,13 @@ local trackedEggs = {
     ["99624357990460"] = {DisplayName = "Cherub Egg", Icon = "😇", ImageId = "", Price = "1T", Rarity = "Ethereal", Color = Color3.fromRGB(255, 255, 100)}
 }
 
--- Removed the excludePaths restriction that was causing the "Unavailable" bug
 local selectedTargetEgg = nil
 local currentTrackedInstance = nil
 local currentEspMode = "Straight"
-local espModes = {"Straight", "Arrow"}
+local espModes = {"Straight", "Arrow", "Name"} -- Added Name ESP
 local currentEspIndex = 1
 local autoPickupEnabled = false
+local notifiedEggs = {}
 
 -- ==========================================
 -- 1. CREATE MODERN AESTHETIC GUI
@@ -48,13 +49,103 @@ if not success then
     screenGui.Parent = player:WaitForChild("PlayerGui")
 end
 
--- Main Window
+-- ==========================================
+-- TOP CENTER RARE NOTIFICATION
+-- ==========================================
+local notifFrame = Instance.new("Frame")
+notifFrame.Size = UDim2.new(0, 320, 0, 70)
+notifFrame.Position = UDim2.new(0.5, -160, 0, -100) -- Hidden above screen
+notifFrame.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
+notifFrame.BorderSizePixel = 0
+notifFrame.AnchorPoint = Vector2.new(0, 0)
+notifFrame.Parent = screenGui
+
+local notifCorner = Instance.new("UICorner")
+notifCorner.CornerRadius = UDim.new(0, 10)
+notifCorner.Parent = notifFrame
+
+local notifStroke = Instance.new("UIStroke")
+notifStroke.Color = Color3.fromRGB(255, 255, 255)
+notifStroke.Thickness = 2
+notifStroke.Transparency = 0.5
+notifStroke.Parent = notifFrame
+
+local notifIcon = Instance.new("TextLabel")
+notifIcon.Size = UDim2.new(0, 50, 1, 0)
+notifIcon.BackgroundTransparency = 1
+notifIcon.Text = "🌟"
+notifIcon.TextSize = 32
+notifIcon.Parent = notifFrame
+
+local notifTitle = Instance.new("TextLabel")
+notifTitle.Size = UDim2.new(1, -60, 0, 25)
+notifTitle.Position = UDim2.new(0, 55, 0, 12)
+notifTitle.BackgroundTransparency = 1
+notifTitle.Text = "RARE EGG SPAWNED!"
+notifTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+notifTitle.Font = Enum.Font.GothamBlack
+notifTitle.TextSize = 16
+notifTitle.TextXAlignment = Enum.TextXAlignment.Left
+notifTitle.Parent = notifFrame
+
+local notifSub = Instance.new("TextLabel")
+notifSub.Size = UDim2.new(1, -60, 0, 20)
+notifSub.Position = UDim2.new(0, 55, 0, 38)
+notifSub.BackgroundTransparency = 1
+notifSub.Text = "Cherub Egg is now available!"
+notifSub.TextColor3 = Color3.fromRGB(200, 210, 230)
+notifSub.Font = Enum.Font.GothamBold
+notifSub.TextSize = 12
+notifSub.TextXAlignment = Enum.TextXAlignment.Left
+notifSub.Parent = notifFrame
+
+local notifThread = nil
+local function showTopNotif(name)
+    local data = nil
+    for _, d in pairs(trackedEggs) do
+        if d.DisplayName == name then data = d break end
+    end
+    if not data then return end
+
+    if notifThread then
+        task.cancel(notifThread)
+    end
+
+    notifIcon.Text = data.Icon
+    notifTitle.Text = name .. " SPAWNED!"
+    notifTitle.TextColor3 = data.Color
+    notifSub.Text = "Look up! It's currently available in the world."
+    notifStroke.Color = data.Color
+
+    notifFrame.Position = UDim2.new(0.5, -160, 0, -100)
+    TweenService:Create(notifFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -160, 0, 20)}):Play()
+    
+    -- Play a sound effect
+    pcall(function()
+        local snd = Instance.new("Sound")
+        snd.SoundId = "rbxassetid://4590660214"
+        snd.Volume = 1
+        snd.Parent = screenGui
+        snd:Play()
+        game.Debris:AddItem(snd, 3)
+    end)
+
+    notifThread = task.delay(5, function()
+        TweenService:Create(notifFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {Position = UDim2.new(0.5, -160, 0, -100)}):Play()
+        notifThread = nil
+    end)
+end
+
+-- ==========================================
+-- MAIN WINDOW
+-- ==========================================
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 320, 0, 380)
-mainFrame.Position = UDim2.new(0, 20, 0.5, -190)
+mainFrame.Size = UDim2.new(0, 290, 0, 380)
+mainFrame.Position = UDim2.new(0.03, 0, 0.3, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
 mainFrame.BorderSizePixel = 0
 mainFrame.ClipsDescendants = true
+mainFrame.Active = true
 mainFrame.Parent = screenGui
 
 local mainCorner = Instance.new("UICorner")
@@ -72,6 +163,7 @@ header.Size = UDim2.new(1, 0, 0, 45)
 header.BackgroundColor3 = Color3.fromRGB(25, 28, 35)
 header.BorderSizePixel = 0
 header.Parent = mainFrame
+header.Active = true
 
 local headerCorner = Instance.new("UICorner")
 headerCorner.CornerRadius = UDim.new(0, 10)
@@ -79,18 +171,18 @@ headerCorner.Parent = header
 
 local titleText = Instance.new("TextLabel")
 titleText.Size = UDim2.new(1, -50, 1, 0)
-titleText.Position = UDim2.new(0, 15, 0, 0)
+titleText.Position = UDim2.new(0, 12, 0, 0)
 titleText.BackgroundTransparency = 1
-titleText.Text = "🥚 RIDE A PET RADAR"
+titleText.Text = "🥚 PET RADAR"
 titleText.TextColor3 = Color3.fromRGB(245, 245, 250)
 titleText.Font = Enum.Font.GothamBold
-titleText.TextSize = 14
+titleText.TextSize = 13
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Parent = header
 
 local exitBtn = Instance.new("TextButton")
-exitBtn.Size = UDim2.new(0, 28, 0, 28)
-exitBtn.Position = UDim2.new(1, -36, 0.5, -14)
+exitBtn.Size = UDim2.new(0, 26, 0, 26)
+exitBtn.Position = UDim2.new(1, -33, 0.5, -13)
 exitBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 60)
 exitBtn.Text = "✕"
 exitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -104,8 +196,8 @@ exitCorner.Parent = exitBtn
 
 -- Controls Bar
 local controlBar = Instance.new("Frame")
-controlBar.Size = UDim2.new(1, -20, 0, 35)
-controlBar.Position = UDim2.new(0, 10, 0, 50)
+controlBar.Size = UDim2.new(1, -16, 0, 35)
+controlBar.Position = UDim2.new(0, 8, 0, 50)
 controlBar.BackgroundColor3 = Color3.fromRGB(30, 33, 40)
 controlBar.BorderSizePixel = 0
 controlBar.Parent = mainFrame
@@ -116,12 +208,12 @@ controlCorner.Parent = controlBar
 
 local modeBtn = Instance.new("TextButton")
 modeBtn.Size = UDim2.new(0.45, 0, 0, 25)
-modeBtn.Position = UDim2.new(0, 5, 0.5, -12.5)
+modeBtn.Position = UDim2.new(0.04, 0, 0.5, -12.5)
 modeBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
-modeBtn.Text = "📏 Straight Line"
+modeBtn.Text = "📏 Line"
 modeBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
 modeBtn.Font = Enum.Font.GothamBold
-modeBtn.TextSize = 10
+modeBtn.TextSize = 11
 modeBtn.Parent = controlBar
 
 local modeCorner = Instance.new("UICorner")
@@ -130,12 +222,12 @@ modeCorner.Parent = modeBtn
 
 local pickupBtn = Instance.new("TextButton")
 pickupBtn.Size = UDim2.new(0.45, 0, 0, 25)
-pickupBtn.Position = UDim2.new(0.55, 0, 0.5, -12.5)
+pickupBtn.Position = UDim2.new(0.51, 0, 0.5, -12.5)
 pickupBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
-pickupBtn.Text = "🤖 Auto Pickup: OFF"
+pickupBtn.Text = "🤖 Pickup: OFF"
 pickupBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
 pickupBtn.Font = Enum.Font.GothamBold
-pickupBtn.TextSize = 10
+pickupBtn.TextSize = 11
 pickupBtn.Parent = controlBar
 
 local pickupCorner = Instance.new("UICorner")
@@ -144,7 +236,7 @@ pickupCorner.Parent = pickupBtn
 
 -- Scroll Area
 local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1, -16, 1, -100)
+scrollFrame.Size = UDim2.new(1, -16, 1, -95)
 scrollFrame.Position = UDim2.new(0, 8, 0, 92)
 scrollFrame.BackgroundTransparency = 1
 scrollFrame.ScrollBarThickness = 3
@@ -190,7 +282,6 @@ for meshId, data in pairs(trackedEggs) do
     accentCorner.CornerRadius = UDim.new(0, 4)
     accentCorner.Parent = accent
 
-    -- Icon/Image Logic
     local iconLabel
     if data.ImageId and data.ImageId ~= "" then
         iconLabel = Instance.new("ImageLabel")
@@ -212,7 +303,7 @@ for meshId, data in pairs(trackedEggs) do
 
     local nameLabel = Instance.new("TextLabel")
     nameLabel.Size = UDim2.new(0.5, -15, 0, 18)
-    nameLabel.Position = UDim2.new(0, 52, 0, 8)
+    nameLabel.Position = UDim2.new(0, 52, 0, 6)
     nameLabel.BackgroundTransparency = 1
     nameLabel.Text = data.DisplayName
     nameLabel.TextColor3 = Color3.fromRGB(235, 235, 240)
@@ -223,7 +314,7 @@ for meshId, data in pairs(trackedEggs) do
 
     local infoLabel = Instance.new("TextLabel")
     infoLabel.Size = UDim2.new(0.5, -15, 0, 14)
-    infoLabel.Position = UDim2.new(0, 52, 0, 26)
+    infoLabel.Position = UDim2.new(0, 52, 0, 24)
     infoLabel.BackgroundTransparency = 1
     infoLabel.Text = data.Rarity .. " • " .. data.Price
     infoLabel.TextColor3 = Color3.fromRGB(140, 145, 160)
@@ -234,7 +325,7 @@ for meshId, data in pairs(trackedEggs) do
 
     local statusDot = Instance.new("Frame")
     statusDot.Size = UDim2.new(0, 6, 0, 6)
-    statusDot.Position = UDim2.new(1, -85, 0.5, -3)
+    statusDot.Position = UDim2.new(1, -80, 0.5, -3)
     statusDot.BackgroundColor3 = Color3.fromRGB(240, 70, 70)
     statusDot.BorderSizePixel = 0
     statusDot.Parent = card
@@ -244,25 +335,31 @@ for meshId, data in pairs(trackedEggs) do
     dotCorner.Parent = statusDot
 
     local statusLabel = Instance.new("TextLabel")
-    statusLabel.Size = UDim2.new(0, 72, 0, 20)
-    statusLabel.Position = UDim2.new(1, -75, 0.5, -10)
+    statusLabel.Size = UDim2.new(0, 68, 0, 20)
+    statusLabel.Position = UDim2.new(1, -70, 0.5, -10)
     statusLabel.BackgroundTransparency = 1
     statusLabel.Text = "UNAVAILABLE"
     statusLabel.TextColor3 = Color3.fromRGB(150, 155, 170)
     statusLabel.TextXAlignment = Enum.TextXAlignment.Left
     statusLabel.Font = Enum.Font.GothamBold
-    statusLabel.TextSize = 9
+    statusLabel.TextSize = 8
     statusLabel.Parent = card
 
     card.MouseButton1Click:Connect(function()
         selectedTargetEgg = data.DisplayName
         currentTrackedInstance = nil 
+        
+        -- Clear all cards to default
         for _, ui in pairs(eggUI) do
             ui.Card.BackgroundColor3 = Color3.fromRGB(28, 31, 38)
             ui.Stroke.Color = Color3.fromRGB(60, 65, 80)
+            ui.Stroke.Thickness = 1
         end
-        card.BackgroundColor3 = Color3.fromRGB(40, 45, 60)
-        cardStroke.Color = data.Color
+        
+        -- Highlight selected card boldly
+        card.BackgroundColor3 = Color3.fromRGB(50, 80, 160) -- Bright Blue tint
+        cardStroke.Color = Color3.fromRGB(0, 255, 120)     -- Bright Green stroke
+        cardStroke.Thickness = 2.5
     end)
 
     eggUI[data.DisplayName] = {Card = card, Status = statusLabel, Dot = statusDot, Stroke = cardStroke}
@@ -272,16 +369,18 @@ end
 modeBtn.MouseButton1Click:Connect(function()
     currentEspIndex = (currentEspIndex % #espModes) + 1
     currentEspMode = espModes[currentEspIndex]
-    modeBtn.Text = currentEspMode == "Straight" and "📏 Straight Line" or "🎯 Nav Arrow"
+    if currentEspMode == "Straight" then modeBtn.Text = "📏 Line"
+    elseif currentEspMode == "Arrow" then modeBtn.Text = "🎯 Arrow"
+    elseif currentEspMode == "Name" then modeBtn.Text = "🔖 Name" end
 end)
 
 pickupBtn.MouseButton1Click:Connect(function()
     autoPickupEnabled = not autoPickupEnabled
     if autoPickupEnabled then
-        pickupBtn.Text = "🤖 Auto Pickup: ON"
+        pickupBtn.Text = "🤖 Pickup: ON"
         pickupBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 80)
     else
-        pickupBtn.Text = "🤖 Auto Pickup: OFF"
+        pickupBtn.Text = "🤖 Pickup: OFF"
         pickupBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
     end
 end)
@@ -327,8 +426,6 @@ end
 
 local function checkEggByMesh(obj)
     if not (obj:IsA("BasePart") or obj:IsA("Model")) then return nil end
-    
-    -- Removed the path exclusion here so it finds eggs everywhere
     
     if obj:IsA("MeshPart") then
         local meshId = extractId(obj.MeshId)
@@ -385,11 +482,13 @@ local function applyESP(egg)
     beam.Enabled = (currentEspMode == "Straight")
     beam.Parent = adornee
 
+    -- Massive Name Tag for "Name" mode (or general use)
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "RadarTag"
-    billboard.Size = UDim2.new(0, 150, 0, 30)
-    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.Size = UDim2.new(0, 300, 0, 60)
+    billboard.StudsOffset = Vector3.new(0, 5, 0)
     billboard.AlwaysOnTop = true
+    billboard.LightInfluence = 0
     billboard.Adornee = adornee
     billboard.Parent = egg
 
@@ -398,9 +497,10 @@ local function applyESP(egg)
     nameLabel.BackgroundTransparency = 1
     nameLabel.Text = selectedTargetEgg
     nameLabel.TextColor3 = espColor
-    nameLabel.TextStrokeTransparency = 0.2
+    nameLabel.TextStrokeTransparency = 0
+    nameLabel.TextStrokeColor3 = Color3.fromRGB(10, 10, 15)
     nameLabel.TextScaled = true
-    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.Font = Enum.Font.GothamBlack
     nameLabel.Parent = billboard
 end
 
@@ -409,35 +509,44 @@ end
 -- ==========================================
 task.spawn(function()
     while task.wait(0.5) do
-        local foundEgg = nil
-        local isAvailable = false
+        local foundEggsMap = {} 
         
         for _, obj in ipairs(Workspace:GetDescendants()) do
             local displayName = checkEggByMesh(obj)
-            if displayName and displayName == selectedTargetEgg then
-                foundEgg = obj
-                isAvailable = true
-                break
+            if displayName then
+                foundEggsMap[displayName] = obj
             end
         end
 
-        if selectedTargetEgg and eggUI[selectedTargetEgg] then
-            local ui = eggUI[selectedTargetEgg]
-            if isAvailable then
+        for displayName, ui in pairs(eggUI) do
+            if foundEggsMap[displayName] then
                 ui.Status.Text = "AVAILABLE"
                 ui.Status.TextColor3 = Color3.fromRGB(60, 230, 120)
                 ui.Dot.BackgroundColor3 = Color3.fromRGB(60, 230, 120)
+                
+                -- Trigger Top Notif for Cherub/Blackhole
+                if (displayName == "Cherub Egg" or displayName == "Blackhole Egg") and not notifiedEggs[displayName] then
+                    showTopNotif(displayName)
+                    notifiedEggs[displayName] = true
+                end
             else
                 ui.Status.Text = "UNAVAILABLE"
                 ui.Status.TextColor3 = Color3.fromRGB(140, 145, 160)
                 ui.Dot.BackgroundColor3 = Color3.fromRGB(240, 70, 70)
+                
+                -- Reset notification status so it can notify again next time it spawns
+                if notifiedEggs[displayName] then
+                    notifiedEggs[displayName] = false
+                end
             end
         end
 
-        if foundEgg and currentTrackedInstance ~= foundEgg then
-            currentTrackedInstance = foundEgg
-            applyESP(foundEgg)
-        elseif not foundEgg and currentTrackedInstance then
+        local selectedInstance = foundEggsMap[selectedTargetEgg]
+        
+        if selectedInstance and currentTrackedInstance ~= selectedInstance then
+            currentTrackedInstance = selectedInstance
+            applyESP(selectedInstance)
+        elseif not selectedInstance and currentTrackedInstance then
             clearESP()
             currentTrackedInstance = nil
         end
@@ -558,13 +667,4 @@ exitBtn.MouseButton1Click:Connect(function()
         end
     end
     screenGui:Destroy()
-end)
-
--- Notification
-pcall(function()
-    StarterGui:SetCore("SendNotification", {
-        Title = "Radar Ready",
-        Text = "Select an egg from the menu to begin tracking.",
-        Duration = 4
-    })
 end)
