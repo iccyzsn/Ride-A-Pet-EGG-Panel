@@ -22,7 +22,7 @@ local trackedEggs = {
 local selectedTargetEgg = nil
 local currentTrackedInstance = nil
 local currentEspMode = "Straight"
-local espModes = {"Straight", "Arrow", "Name"} -- Added Name ESP
+local espModes = {"Straight", "Arrow", "Name"}
 local currentEspIndex = 1
 local autoPickupEnabled = false
 local notifiedEggs = {}
@@ -57,7 +57,6 @@ notifFrame.Size = UDim2.new(0, 320, 0, 70)
 notifFrame.Position = UDim2.new(0.5, -160, 0, -100) -- Hidden above screen
 notifFrame.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
 notifFrame.BorderSizePixel = 0
-notifFrame.AnchorPoint = Vector2.new(0, 0)
 notifFrame.Parent = screenGui
 
 local notifCorner = Instance.new("UICorner")
@@ -120,7 +119,6 @@ local function showTopNotif(name)
     notifFrame.Position = UDim2.new(0.5, -160, 0, -100)
     TweenService:Create(notifFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -160, 0, 20)}):Play()
     
-    -- Play a sound effect
     pcall(function()
         local snd = Instance.new("Sound")
         snd.SoundId = "rbxassetid://4590660214"
@@ -349,16 +347,14 @@ for meshId, data in pairs(trackedEggs) do
         selectedTargetEgg = data.DisplayName
         currentTrackedInstance = nil 
         
-        -- Clear all cards to default
         for _, ui in pairs(eggUI) do
             ui.Card.BackgroundColor3 = Color3.fromRGB(28, 31, 38)
             ui.Stroke.Color = Color3.fromRGB(60, 65, 80)
             ui.Stroke.Thickness = 1
         end
         
-        -- Highlight selected card boldly
-        card.BackgroundColor3 = Color3.fromRGB(50, 80, 160) -- Bright Blue tint
-        cardStroke.Color = Color3.fromRGB(0, 255, 120)     -- Bright Green stroke
+        card.BackgroundColor3 = Color3.fromRGB(50, 80, 160) 
+        cardStroke.Color = Color3.fromRGB(0, 255, 120)     
         cardStroke.Thickness = 2.5
     end)
 
@@ -479,14 +475,13 @@ local function applyESP(egg)
     beam.Width1 = 0.12
     beam.FaceCamera = true
     beam.Transparency = NumberSequence.new(0.3)
-    beam.Enabled = (currentEspMode == "Straight")
+    beam.Enabled = false -- Handled by RenderStepped
     beam.Parent = adornee
 
-    -- Massive Name Tag for "Name" mode (or general use)
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "RadarTag"
-    billboard.Size = UDim2.new(0, 300, 0, 60)
-    billboard.StudsOffset = Vector3.new(0, 5, 0)
+    billboard.Size = UDim2.new(0, 150, 0, 30)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
     billboard.AlwaysOnTop = true
     billboard.LightInfluence = 0
     billboard.Adornee = adornee
@@ -524,7 +519,6 @@ task.spawn(function()
                 ui.Status.TextColor3 = Color3.fromRGB(60, 230, 120)
                 ui.Dot.BackgroundColor3 = Color3.fromRGB(60, 230, 120)
                 
-                -- Trigger Top Notif for Cherub/Blackhole
                 if (displayName == "Cherub Egg" or displayName == "Blackhole Egg") and not notifiedEggs[displayName] then
                     showTopNotif(displayName)
                     notifiedEggs[displayName] = true
@@ -534,7 +528,6 @@ task.spawn(function()
                 ui.Status.TextColor3 = Color3.fromRGB(140, 145, 160)
                 ui.Dot.BackgroundColor3 = Color3.fromRGB(240, 70, 70)
                 
-                -- Reset notification status so it can notify again next time it spawns
                 if notifiedEggs[displayName] then
                     notifiedEggs[displayName] = false
                 end
@@ -604,35 +597,66 @@ RunService.RenderStepped:Connect(function()
                 local dist = (adornee.Position - hrp.Position).Magnitude
                 
                 local beam = adornee:FindFirstChild("RadarBeam")
-                if beam then
-                    beam.Attachment0 = playerAtt
-                    beam.Enabled = (currentEspMode == "Straight")
-                end
+                local billboard = currentTrackedInstance:FindFirstChild("RadarTag")
 
-                arrowGui.Enabled = (currentEspMode == "Arrow")
-                if currentEspMode == "Arrow" then
-                    local lookVector = hrp.CFrame.LookVector
-                    local targetDir = (adornee.Position - hrp.Position).Unit
-                    local look2D = Vector2.new(lookVector.X, lookVector.Z).Unit
-                    local target2D = Vector2.new(targetDir.X, targetDir.Z).Unit
-                    local angle = math.atan2(target2D.Y, target2D.X) - math.atan2(look2D.Y, look2D.X)
-                    local degrees = math.deg(angle)
-                    
-                    local arrowText = arrowGui:FindFirstChild("ArrowText")
-                    local distText = arrowGui:FindFirstChild("DistText")
-                    if arrowText then
-                        arrowText.Rotation = -degrees
-                        local dotProduct = look2D:Dot(target2D)
-                        if dotProduct > 0.85 then
-                            arrowText.TextColor3 = Color3.fromRGB(0, 255, 120)
-                        elseif dotProduct > 0.3 then
-                            arrowText.TextColor3 = Color3.fromRGB(255, 200, 50)
-                        else
-                            arrowText.TextColor3 = Color3.fromRGB(255, 60, 60)
+                -- 1. Disable all visuals first to prevent overlapping ESP bug
+                if beam then beam.Enabled = false end
+                if arrowGui then arrowGui.Enabled = false end
+                if billboard then billboard.Enabled = false end
+
+                -- 2. Enable ONLY the selected ESP mode
+                if currentEspMode == "Straight" then
+                    if beam then
+                        beam.Attachment0 = playerAtt
+                        beam.Enabled = true
+                    end
+                    if billboard then -- Keep a small name tag in Line mode
+                        billboard.Enabled = true
+                        billboard.Size = UDim2.new(0, 150, 0, 30)
+                        billboard.StudsOffset = Vector3.new(0, 3, 0)
+                    end
+
+                elseif currentEspMode == "Arrow" then
+                    if arrowGui then
+                        arrowGui.Enabled = true
+                        local lookVector = hrp.CFrame.LookVector
+                        local targetDir = (adornee.Position - hrp.Position).Unit
+                        local look2D = Vector2.new(lookVector.X, lookVector.Z).Unit
+                        local target2D = Vector2.new(targetDir.X, targetDir.Z).Unit
+                        local angle = math.atan2(target2D.Y, target2D.X) - math.atan2(look2D.Y, look2D.X)
+                        local degrees = math.deg(angle)
+                        
+                        local arrowText = arrowGui:FindFirstChild("ArrowText")
+                        local distText = arrowGui:FindFirstChild("DistText")
+                        if arrowText then
+                            arrowText.Rotation = -degrees
+                            local dotProduct = look2D:Dot(target2D)
+                            if dotProduct > 0.85 then
+                                arrowText.TextColor3 = Color3.fromRGB(0, 255, 120)
+                            elseif dotProduct > 0.3 then
+                                arrowText.TextColor3 = Color3.fromRGB(255, 200, 50)
+                            else
+                                arrowText.TextColor3 = Color3.fromRGB(255, 60, 60)
+                            end
+                        end
+                        if distText then
+                            distText.Text = math.floor(dist) .. "m"
                         end
                     end
-                    if distText then
-                        distText.Text = math.floor(dist) .. "m"
+
+                elseif currentEspMode == "Name" then
+                    if billboard then
+                        billboard.Enabled = true
+                        local minDist = 5
+                        local maxDist = 250
+                        local t = math.clamp((dist - minDist) / (maxDist - minDist), 0, 1)
+                        
+                        local sizeX = 120 + (t * 330)
+                        local sizeY = 35 + (t * 55)
+                        local studOffsetY = 3 + (t * 12)
+                        
+                        billboard.Size = UDim2.new(0, sizeX, 0, sizeY)
+                        billboard.StudsOffset = Vector3.new(0, studOffsetY, 0)
                     end
                 end
 
@@ -645,7 +669,7 @@ RunService.RenderStepped:Connect(function()
                 end
             end
         else
-            arrowGui.Enabled = false
+            if arrowGui then arrowGui.Enabled = false end
             if autoPickupEnabled and hum and hum.Health > 0 then
                 hum:MoveTo(hrp.Position)
             end
