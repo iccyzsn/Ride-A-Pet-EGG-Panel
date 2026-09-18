@@ -19,8 +19,8 @@ local trackedEggs = {
     ["99624357990460"] = {DisplayName = "Cherub Egg", Icon = "😇", ImageId = "", Price = "1T", Rarity = "Ethereal", Color = Color3.fromRGB(255, 255, 100)}
 }
 
-local selectedTargetEgg = nil
-local currentTrackedInstance = nil
+local selectedTargetEggs = {} 
+local activeEggs = {}         
 local currentEspMode = "Straight"
 local espModes = {"Straight", "Arrow", "Name"}
 local currentEspIndex = 1
@@ -54,7 +54,7 @@ end
 -- ==========================================
 local notifFrame = Instance.new("Frame")
 notifFrame.Size = UDim2.new(0, 320, 0, 70)
-notifFrame.Position = UDim2.new(0.5, -160, 0, -100) -- Hidden above screen
+notifFrame.Position = UDim2.new(0.5, -160, 0, -100)
 notifFrame.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
 notifFrame.BorderSizePixel = 0
 notifFrame.Parent = screenGui
@@ -135,6 +135,28 @@ local function showTopNotif(name)
 end
 
 -- ==========================================
+-- MINIMIZED ICON
+-- ==========================================
+local miniIcon = Instance.new("TextButton")
+miniIcon.Size = UDim2.new(0, 50, 0, 50)
+miniIcon.Position = UDim2.new(0.03, 0, 0.3, 0)
+miniIcon.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
+miniIcon.Text = "🥚"
+miniIcon.TextSize = 30
+miniIcon.Visible = false
+miniIcon.Parent = screenGui
+miniIcon.Active = true
+
+local miniCorner = Instance.new("UICorner")
+miniCorner.CornerRadius = UDim.new(1, 0)
+miniCorner.Parent = miniIcon
+
+local miniStroke = Instance.new("UIStroke")
+miniStroke.Color = Color3.fromRGB(50, 55, 70)
+miniStroke.Thickness = 2
+miniStroke.Parent = miniIcon
+
+-- ==========================================
 -- MAIN WINDOW
 -- ==========================================
 local mainFrame = Instance.new("Frame")
@@ -155,7 +177,6 @@ mainStroke.Color = Color3.fromRGB(50, 55, 70)
 mainStroke.Thickness = 1
 mainStroke.Parent = mainFrame
 
--- Header
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 45)
 header.BackgroundColor3 = Color3.fromRGB(25, 28, 35)
@@ -168,7 +189,7 @@ headerCorner.CornerRadius = UDim.new(0, 10)
 headerCorner.Parent = header
 
 local titleText = Instance.new("TextLabel")
-titleText.Size = UDim2.new(1, -50, 1, 0)
+titleText.Size = UDim2.new(1, -100, 1, 0)
 titleText.Position = UDim2.new(0, 12, 0, 0)
 titleText.BackgroundTransparency = 1
 titleText.Text = "🥚 PET RADAR"
@@ -178,21 +199,35 @@ titleText.TextSize = 13
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Parent = header
 
+-- Minimize Button
+local miniBtn = Instance.new("TextButton")
+miniBtn.Size = UDim2.new(0, 30, 0, 30)
+miniBtn.Position = UDim2.new(1, -68, 0.5, -15)
+miniBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
+miniBtn.Text = "—"
+miniBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+miniBtn.Font = Enum.Font.GothamBold
+miniBtn.TextSize = 16
+miniBtn.Parent = header
+
+local miniBtnCorner = Instance.new("UICorner")
+miniBtnCorner.CornerRadius = UDim.new(0, 6)
+miniBtnCorner.Parent = miniBtn
+
 local exitBtn = Instance.new("TextButton")
-exitBtn.Size = UDim2.new(0, 26, 0, 26)
-exitBtn.Position = UDim2.new(1, -33, 0.5, -13)
+exitBtn.Size = UDim2.new(0, 30, 0, 30)
+exitBtn.Position = UDim2.new(1, -34, 0.5, -15)
 exitBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 60)
 exitBtn.Text = "✕"
 exitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 exitBtn.Font = Enum.Font.GothamBold
-exitBtn.TextSize = 12
+exitBtn.TextSize = 14
 exitBtn.Parent = header
 
 local exitCorner = Instance.new("UICorner")
 exitCorner.CornerRadius = UDim.new(0, 6)
 exitCorner.Parent = exitBtn
 
--- Controls Bar
 local controlBar = Instance.new("Frame")
 controlBar.Size = UDim2.new(1, -16, 0, 35)
 controlBar.Position = UDim2.new(0, 8, 0, 50)
@@ -232,7 +267,6 @@ local pickupCorner = Instance.new("UICorner")
 pickupCorner.CornerRadius = UDim.new(0, 6)
 pickupCorner.Parent = pickupBtn
 
--- Scroll Area
 local scrollFrame = Instance.new("ScrollingFrame")
 scrollFrame.Size = UDim2.new(1, -16, 1, -95)
 scrollFrame.Position = UDim2.new(0, 8, 0, 92)
@@ -248,7 +282,6 @@ local uiLayout = Instance.new("UIListLayout")
 uiLayout.Padding = UDim.new(0, 6)
 uiLayout.Parent = scrollFrame
 
--- Egg Cards
 local eggUI = {}
 
 for meshId, data in pairs(trackedEggs) do
@@ -344,24 +377,22 @@ for meshId, data in pairs(trackedEggs) do
     statusLabel.Parent = card
 
     card.MouseButton1Click:Connect(function()
-        selectedTargetEgg = data.DisplayName
-        currentTrackedInstance = nil 
-        
-        for _, ui in pairs(eggUI) do
-            ui.Card.BackgroundColor3 = Color3.fromRGB(28, 31, 38)
-            ui.Stroke.Color = Color3.fromRGB(60, 65, 80)
-            ui.Stroke.Thickness = 1
+        if selectedTargetEggs[data.DisplayName] then
+            selectedTargetEggs[data.DisplayName] = nil
+            card.BackgroundColor3 = Color3.fromRGB(28, 31, 38)
+            cardStroke.Color = Color3.fromRGB(60, 65, 80)
+            cardStroke.Thickness = 1
+        else
+            selectedTargetEggs[data.DisplayName] = true
+            card.BackgroundColor3 = Color3.fromRGB(50, 80, 160) 
+            cardStroke.Color = Color3.fromRGB(0, 255, 120)     
+            cardStroke.Thickness = 2.5
         end
-        
-        card.BackgroundColor3 = Color3.fromRGB(50, 80, 160) 
-        cardStroke.Color = Color3.fromRGB(0, 255, 120)     
-        cardStroke.Thickness = 2.5
     end)
 
     eggUI[data.DisplayName] = {Card = card, Status = statusLabel, Dot = statusDot, Stroke = cardStroke}
 end
 
--- Button Logic
 modeBtn.MouseButton1Click:Connect(function()
     currentEspIndex = (currentEspIndex % #espModes) + 1
     currentEspMode = espModes[currentEspIndex]
@@ -381,30 +412,55 @@ pickupBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Dragging Logic
+-- Mobile-Friendly Dragging Logic
 local dragging, dragInput, dragStart, startPos
-local function update(input)
+local function update(input, frame)
     local delta = input.Position - dragStart
-    mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 end
 
-header.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true; dragStart = input.Position; startPos = mainFrame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
-        end)
+local function setupDrag(handle, frame)
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true; dragStart = input.Position; startPos = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    handle.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+    end)
+end
+
+setupDrag(header, mainFrame)
+setupDrag(miniIcon, miniIcon)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        if mainFrame.Visible then
+            update(input, mainFrame)
+        else
+            update(input, miniIcon)
+        end
     end
 end)
-header.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+
+-- Minimize Logic
+miniBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = false
+    miniIcon.Position = mainFrame.Position
+    miniIcon.Visible = true
 end)
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then update(input) end
+
+miniIcon.MouseButton1Click:Connect(function()
+    miniIcon.Visible = false
+    mainFrame.Position = miniIcon.Position
+    mainFrame.Visible = true
 end)
 
 -- ==========================================
--- 2. ESP & TRACKING LOGIC
+-- 2. ESP & TRACKING LOGIC (MULTI-EGG)
 -- ==========================================
 local function extractId(str)
     if not str or str == "" then return nil end
@@ -423,6 +479,15 @@ end
 local function checkEggByMesh(obj)
     if not (obj:IsA("BasePart") or obj:IsA("Model")) then return nil end
     
+    -- EXCLUDE RANCH AND CHARACTER: Prevents ESP from sticking to picked up/placed eggs
+    local path = obj:GetFullName()
+    if string.find(path, "Ranch") or string.find(path, "Backpack") then
+        return nil
+    end
+    if player.Character and obj:IsDescendantOf(player.Character) then
+        return nil
+    end
+    
     if obj:IsA("MeshPart") then
         local meshId = extractId(obj.MeshId)
         if meshId and trackedEggs[meshId] then return trackedEggs[meshId].DisplayName end
@@ -435,25 +500,24 @@ local function checkEggByMesh(obj)
     return nil
 end
 
-local function clearESP()
-    if currentTrackedInstance and currentTrackedInstance.Parent then
-        local hl = currentTrackedInstance:FindFirstChild("RadarHighlight")
+local function clearESPForEgg(eggInst)
+    if eggInst and eggInst.Parent then
+        local hl = eggInst:FindFirstChild("RadarHighlight")
         if hl then hl:Destroy() end
-        local tag = currentTrackedInstance:FindFirstChild("RadarTag")
+        local tag = eggInst:FindFirstChild("RadarTag")
         if tag then tag:Destroy() end
-        local att = currentTrackedInstance:FindFirstChild("RadarAtt")
+        local att = eggInst:FindFirstChild("RadarAtt")
         if att then att:Destroy() end
     end
 end
 
-local function applyESP(egg)
-    clearESP()
-    local adornee = getAdornee(egg)
+local function applyESPToEgg(eggInst, displayName)
+    local adornee = getAdornee(eggInst)
     if not adornee then return end
 
     local espColor = Color3.new(1, 1, 1)
     for _, data in pairs(trackedEggs) do
-        if data.DisplayName == selectedTargetEgg then espColor = data.Color break end
+        if data.DisplayName == displayName then espColor = data.Color break end
     end
 
     local highlight = Instance.new("Highlight")
@@ -461,7 +525,7 @@ local function applyESP(egg)
     highlight.FillColor = espColor
     highlight.OutlineColor = Color3.new(1, 1, 1)
     highlight.FillTransparency = 0.4
-    highlight.Parent = egg
+    highlight.Parent = eggInst
 
     local eggAtt = Instance.new("Attachment")
     eggAtt.Name = "RadarAtt"
@@ -475,7 +539,7 @@ local function applyESP(egg)
     beam.Width1 = 0.12
     beam.FaceCamera = true
     beam.Transparency = NumberSequence.new(0.3)
-    beam.Enabled = false -- Handled by RenderStepped
+    beam.Enabled = false
     beam.Parent = adornee
 
     local billboard = Instance.new("BillboardGui")
@@ -485,12 +549,12 @@ local function applyESP(egg)
     billboard.AlwaysOnTop = true
     billboard.LightInfluence = 0
     billboard.Adornee = adornee
-    billboard.Parent = egg
+    billboard.Parent = eggInst
 
     local nameLabel = Instance.new("TextLabel")
     nameLabel.Size = UDim2.new(1, 0, 1, 0)
     nameLabel.BackgroundTransparency = 1
-    nameLabel.Text = selectedTargetEgg
+    nameLabel.Text = displayName
     nameLabel.TextColor3 = espColor
     nameLabel.TextStrokeTransparency = 0
     nameLabel.TextStrokeColor3 = Color3.fromRGB(10, 10, 15)
@@ -534,14 +598,19 @@ task.spawn(function()
             end
         end
 
-        local selectedInstance = foundEggsMap[selectedTargetEgg]
-        
-        if selectedInstance and currentTrackedInstance ~= selectedInstance then
-            currentTrackedInstance = selectedInstance
-            applyESP(selectedInstance)
-        elseif not selectedInstance and currentTrackedInstance then
-            clearESP()
-            currentTrackedInstance = nil
+        for eggInst, eggName in pairs(activeEggs) do
+            if not selectedTargetEggs[eggName] or not eggInst.Parent or not foundEggsMap[eggName] then
+                clearESPForEgg(eggInst)
+                activeEggs[eggInst] = nil
+            end
+        end
+
+        for eggName, _ in pairs(selectedTargetEggs) do
+            local inst = foundEggsMap[eggName]
+            if inst and not activeEggs[inst] then
+                applyESPToEgg(inst, eggName)
+                activeEggs[inst] = eggName
+            end
         end
     end
 end)
@@ -591,95 +660,108 @@ RunService.RenderStepped:Connect(function()
             distLabel.Parent = arrowGui
         end
 
-        if currentTrackedInstance and currentTrackedInstance.Parent then
-            local adornee = getAdornee(currentTrackedInstance)
-            if adornee then
-                local dist = (adornee.Position - hrp.Position).Magnitude
-                
-                local beam = adornee:FindFirstChild("RadarBeam")
-                local billboard = currentTrackedInstance:FindFirstChild("RadarTag")
+        local closestEggInst = nil
+        local closestDist = math.huge
+        local closestAdornee = nil
 
-                -- 1. Disable all visuals first to prevent overlapping ESP bug
-                if beam then beam.Enabled = false end
-                if arrowGui then arrowGui.Enabled = false end
-                if billboard then billboard.Enabled = false end
-
-                -- 2. Enable ONLY the selected ESP mode
-                if currentEspMode == "Straight" then
-                    if beam then
-                        beam.Attachment0 = playerAtt
-                        beam.Enabled = true
-                    end
-                    if billboard then -- Keep a small name tag in Line mode
-                        billboard.Enabled = true
-                        billboard.Size = UDim2.new(0, 150, 0, 30)
-                        billboard.StudsOffset = Vector3.new(0, 3, 0)
+        for eggInst, eggName in pairs(activeEggs) do
+            if eggInst and eggInst.Parent then
+                local adornee = getAdornee(eggInst)
+                if adornee then
+                    local dist = (adornee.Position - hrp.Position).Magnitude
+                    
+                    if dist < closestDist then
+                        closestDist = dist
+                        closestEggInst = eggInst
+                        closestAdornee = adornee
                     end
 
-                elseif currentEspMode == "Arrow" then
-                    if arrowGui then
-                        arrowGui.Enabled = true
-                        local lookVector = hrp.CFrame.LookVector
-                        local targetDir = (adornee.Position - hrp.Position).Unit
-                        local look2D = Vector2.new(lookVector.X, lookVector.Z).Unit
-                        local target2D = Vector2.new(targetDir.X, targetDir.Z).Unit
-                        local angle = math.atan2(target2D.Y, target2D.X) - math.atan2(look2D.Y, look2D.X)
-                        local degrees = math.deg(angle)
-                        
-                        local arrowText = arrowGui:FindFirstChild("ArrowText")
-                        local distText = arrowGui:FindFirstChild("DistText")
-                        if arrowText then
-                            arrowText.Rotation = -degrees
-                            local dotProduct = look2D:Dot(target2D)
-                            if dotProduct > 0.85 then
-                                arrowText.TextColor3 = Color3.fromRGB(0, 255, 120)
-                            elseif dotProduct > 0.3 then
-                                arrowText.TextColor3 = Color3.fromRGB(255, 200, 50)
-                            else
-                                arrowText.TextColor3 = Color3.fromRGB(255, 60, 60)
-                            end
+                    local beam = adornee:FindFirstChild("RadarBeam")
+                    local billboard = eggInst:FindFirstChild("RadarTag")
+
+                    if beam then beam.Enabled = false end
+                    if billboard then billboard.Enabled = false end
+
+                    if currentEspMode == "Straight" then
+                        if beam then
+                            beam.Attachment0 = playerAtt
+                            beam.Enabled = true
                         end
-                        if distText then
-                            distText.Text = math.floor(dist) .. "m"
+                        if billboard then
+                            billboard.Enabled = true
+                            billboard.Size = UDim2.new(0, 150, 0, 30)
+                            billboard.StudsOffset = Vector3.new(0, 3, 0)
                         end
-                    end
-
-                elseif currentEspMode == "Name" then
-                    if billboard then
-                        billboard.Enabled = true
-                        local minDist = 5
-                        local maxDist = 250
-                        local t = math.clamp((dist - minDist) / (maxDist - minDist), 0, 1)
-                        
-                        local sizeX = 120 + (t * 330)
-                        local sizeY = 35 + (t * 55)
-                        local studOffsetY = 3 + (t * 12)
-                        
-                        billboard.Size = UDim2.new(0, sizeX, 0, sizeY)
-                        billboard.StudsOffset = Vector3.new(0, studOffsetY, 0)
+                    elseif currentEspMode == "Name" then
+                        if billboard then
+                            billboard.Enabled = true
+                            local minDist = 5
+                            local maxDist = 250
+                            local t = math.clamp((dist - minDist) / (maxDist - minDist), 0, 1)
+                            
+                            local sizeX = 120 + (t * 330)
+                            local sizeY = 35 + (t * 55)
+                            local studOffsetY = 3 + (t * 12)
+                            
+                            billboard.Size = UDim2.new(0, sizeX, 0, sizeY)
+                            billboard.StudsOffset = Vector3.new(0, studOffsetY, 0)
+                        end
                     end
                 end
+            else
+                clearESPForEgg(eggInst)
+                activeEggs[eggInst] = nil
+            end
+        end
 
-                if autoPickupEnabled and hum and hum.Health > 0 then
-                    if dist > 5 then
-                        hum:MoveTo(adornee.Position)
-                    else
-                        hum:MoveTo(hrp.Position)
-                    end
+        if arrowGui then arrowGui.Enabled = false end
+        
+        if currentEspMode == "Arrow" and closestAdornee then
+            arrowGui.Enabled = true
+            local lookVector = hrp.CFrame.LookVector
+            local targetDir = (closestAdornee.Position - hrp.Position).Unit
+            local look2D = Vector2.new(lookVector.X, lookVector.Z).Unit
+            local target2D = Vector2.new(targetDir.X, targetDir.Z).Unit
+            local angle = math.atan2(target2D.Y, target2D.X) - math.atan2(look2D.Y, look2D.X)
+            local degrees = math.deg(angle)
+            
+            local arrowText = arrowGui:FindFirstChild("ArrowText")
+            local distText = arrowGui:FindFirstChild("DistText")
+            if arrowText then
+                arrowText.Rotation = -degrees
+                local dotProduct = look2D:Dot(target2D)
+                if dotProduct > 0.85 then
+                    arrowText.TextColor3 = Color3.fromRGB(0, 255, 120)
+                elseif dotProduct > 0.3 then
+                    arrowText.TextColor3 = Color3.fromRGB(255, 200, 50)
+                else
+                    arrowText.TextColor3 = Color3.fromRGB(255, 60, 60)
                 end
             end
-        else
-            if arrowGui then arrowGui.Enabled = false end
-            if autoPickupEnabled and hum and hum.Health > 0 then
+            if distText then
+                distText.Text = math.floor(closestDist) .. "m"
+            end
+        end
+
+        if autoPickupEnabled and hum and hum.Health > 0 and closestAdornee then
+            if closestDist > 5 then
+                hum:MoveTo(closestAdornee.Position)
+            else
                 hum:MoveTo(hrp.Position)
             end
+        elseif autoPickupEnabled and hum and hum.Health > 0 and not closestAdornee then
+            hum:MoveTo(hrp.Position)
         end
     end
 end)
 
 -- Exit Logic
 exitBtn.MouseButton1Click:Connect(function()
-    clearESP()
+    for eggInst, _ in pairs(activeEggs) do
+        clearESPForEgg(eggInst)
+    end
+    activeEggs = {}
+    
     local char = player.Character
     if char then
         local hrp = char:FindFirstChild("HumanoidRootPart")
