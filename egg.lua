@@ -6,7 +6,7 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 
 -- ==========================================
--- EGG DATABASE
+-- EGG DATABASE (ADDED CHERUB EGG)
 -- ==========================================
 local trackedEggs = {
     ["152975769"] = {DisplayName = "Flaming Egg", Icon = "🔥", Price = "Rare", Rarity = "Fire", Color = Color3.fromRGB(255, 120, 30)},
@@ -14,7 +14,8 @@ local trackedEggs = {
     ["131792796847596"] = {DisplayName = "Galaxy Egg", Icon = "🌌", Price = "1.5B", Rarity = "Divine", Color = Color3.fromRGB(180, 100, 255)},
     ["95155753812330"] = {DisplayName = "Soul Egg", Icon = "👻", Price = "Ethereal", Rarity = "Ghost", Color = Color3.fromRGB(120, 220, 255)},
     ["109698896973127"] = {DisplayName = "Skull Egg", Icon = "💀", Price = "Dark", Rarity = "Bone", Color = Color3.fromRGB(180, 180, 180)},
-    ["6932488731"] = {DisplayName = "Blackhole Egg", Icon = "🕳️", Price = "100B", Rarity = "Ethereal", Color = Color3.fromRGB(80, 80, 80)}
+    ["6932488731"] = {DisplayName = "Blackhole Egg", Icon = "🕳️", Price = "100B", Rarity = "Ethereal", Color = Color3.fromRGB(80, 80, 80)},
+    ["99624357990460"] = {DisplayName = "Cherub Egg", Icon = "😇", Price = "1T", Rarity = "Ethereal", Color = Color3.fromRGB(255, 255, 100)} -- The new ID you found!
 }
 
 local excludePaths = {"Plots", "Ranch"} 
