@@ -29,7 +29,7 @@ local notifiedEggs = {}
 local autoPickupState = "Idle" -- "Idle", "ToEgg", "ToPlot"
 local targetEgg = nil
 local carriedEgg = nil
-local flySpeed = 150 -- Default fly speed
+local flySpeed = 150
 local noclipActive = false
 
 local excludePaths = {"Plots", "Plot", "Ranch", "Backpack", "Base", "Farm", "House"} 
@@ -224,9 +224,9 @@ local exitCorner = Instance.new("UICorner")
 exitCorner.CornerRadius = UDim.new(0, 6)
 exitCorner.Parent = exitBtn
 
--- CONTROL BAR (Expanded for Speed Input)
+-- CONTROL BAR
 local controlBar = Instance.new("Frame")
-controlBar.Size = UDim2.new(1, -16, 0, 70) -- Increased height
+controlBar.Size = UDim2.new(1, -16, 0, 70)
 controlBar.Position = UDim2.new(0, 8, 0, 50)
 controlBar.BackgroundColor3 = Color3.fromRGB(30, 33, 40)
 controlBar.BorderSizePixel = 0
@@ -264,7 +264,6 @@ local pickupCorner = Instance.new("UICorner")
 pickupCorner.CornerRadius = UDim.new(0, 6)
 pickupCorner.Parent = pickupBtn
 
--- SPEED INPUT BOX
 local speedBox = Instance.new("TextBox")
 speedBox.Size = UDim2.new(0.92, 0, 0, 25)
 speedBox.Position = UDim2.new(0.04, 0, 0, 38)
@@ -289,8 +288,8 @@ speedBox.FocusLost:Connect(function()
 end)
 
 local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1, -16, 1, -130) -- Adjusted Y offset
-scrollFrame.Position = UDim2.new(0, 8, 0, 127) -- Adjusted Y position
+scrollFrame.Size = UDim2.new(1, -16, 1, -130)
+scrollFrame.Position = UDim2.new(0, 8, 0, 127)
 scrollFrame.BackgroundTransparency = 1
 scrollFrame.ScrollBarThickness = 3
 scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 105, 120)
@@ -525,15 +524,22 @@ local function checkEggByMesh(obj)
     return nil
 end
 
+local function firePrompts(obj)
+    if not obj then return end
+    for _, prompt in ipairs(obj:GetDescendants()) do
+        if prompt:IsA("ProximityPrompt") then
+            fireproximityprompt(prompt, 0)
+        end
+    end
+end
+
 local function findPlayerPlot()
     local searchFolders = {"Plots", "Ranches", "Ranch", "Farm", "Base", "Houses", "House"}
     for _, folderName in ipairs(searchFolders) do
         local folder = Workspace:FindFirstChild(folderName)
         if folder then
-            -- Try to find by Player Name or UserId
             local plot = folder:FindFirstChild(player.Name) or folder:FindFirstChild(tostring(player.UserId))
             if not plot then
-                -- Fallback to checking "Owner" attributes
                 for _, child in ipairs(folder:GetChildren()) do
                     if child:GetAttribute("Owner") == player.Name or child:GetAttribute("Owner") == tostring(player.UserId) then
                         plot = child
@@ -803,8 +809,11 @@ RunService.RenderStepped:Connect(function(dt)
 
         -- FLIGHT & AUTO PICKUP STATE MACHINE
         if autoPickupEnabled and hum and hum.Health > 0 then
-            hum.PlatformStand = true -- Prevent falling over while flying
+            hum.PlatformStand = true -- Prevent falling
             
+            local targetPos = nil
+            local arrivalDist = 5
+
             if autoPickupState == "Idle" then
                 if closestEggInst then
                     targetEgg = closestEggInst
@@ -818,14 +827,18 @@ RunService.RenderStepped:Connect(function(dt)
                 else
                     local adornee = getAdornee(targetEgg)
                     if adornee then
-                        local dist = (adornee.Position - hrp.Position).Magnitude
-                        if dist < 5 then
-                            -- Grab Egg
+                        targetPos = adornee.Position
+                        arrivalDist = 4
+                        
+                        if (adornee.Position - hrp.Position).Magnitude < 6 then
+                            -- Instantly fire any proximity prompts to pick up
+                            firePrompts(targetEgg)
+                            
+                            -- Weld it to us in case the game expects us to physically carry it
                             adornee.Anchored = false
                             adornee.CanCollide = false
-                            local weld = adornee:FindFirstChild("AutoPickupWeld")
-                            if not weld then
-                                weld = Instance.new("WeldConstraint")
+                            if not adornee:FindFirstChild("AutoPickupWeld") then
+                                local weld = Instance.new("WeldConstraint")
                                 weld.Name = "AutoPickupWeld"
                                 weld.Part0 = hrp
                                 weld.Part1 = adornee
@@ -834,10 +847,6 @@ RunService.RenderStepped:Connect(function(dt)
                             carriedEgg = targetEgg
                             targetEgg = nil
                             autoPickupState = "ToPlot"
-                        else
-                            -- Fly to Egg
-                            local dir = (adornee.Position - hrp.Position)
-                            hrp.CFrame = CFrame.new(hrp.Position + (dir.Unit * (flySpeed * dt))) * CFrame.lookAt(Vector3.new(), dir)
                         end
                     end
                 end
@@ -845,7 +854,7 @@ RunService.RenderStepped:Connect(function(dt)
             elseif autoPickupState == "ToPlot" then
                 local plotBase = findPlayerPlot()
                 if not plotBase then
-                    -- If no plot found, drop and restart
+                    -- No plot found, drop it
                     if carriedEgg and carriedEgg.Parent then
                         local adornee = getAdornee(carriedEgg)
                         if adornee and adornee:FindFirstChild("AutoPickupWeld") then
@@ -855,11 +864,15 @@ RunService.RenderStepped:Connect(function(dt)
                     carriedEgg = nil
                     autoPickupState = "Idle"
                 else
-                    local plotPos = plotBase.Position + Vector3.new(0, 10, 0) -- Aim slightly above plot
-                    local dist = (plotPos - hrp.Position).Magnitude
+                    targetPos = plotBase.Position + Vector3.new(0, 8, 0)
+                    arrivalDist = 8
                     
-                    if dist < 8 then
-                        -- Drop Egg at plot
+                    if (targetPos - hrp.Position).Magnitude < 10 then
+                        -- Arrived at plot, fire drop prompts if any exist
+                        firePrompts(plotBase)
+                        firePrompts(carriedEgg)
+                        
+                        -- Unweld
                         if carriedEgg and carriedEgg.Parent then
                             local adornee = getAdornee(carriedEgg)
                             if adornee and adornee:FindFirstChild("AutoPickupWeld") then
@@ -868,12 +881,31 @@ RunService.RenderStepped:Connect(function(dt)
                         end
                         carriedEgg = nil
                         autoPickupState = "Idle"
-                    else
-                        -- Fly to Plot
-                        local dir = (plotPos - hrp.Position)
-                        hrp.CFrame = CFrame.new(hrp.Position + (dir.Unit * (flySpeed * dt))) * CFrame.lookAt(Vector3.new(), dir)
                     end
                 end
+            end
+
+            -- VELOCITY FLIGHT LOGIC
+            if targetPos then
+                local dir = (targetPos - hrp.Position)
+                local dist = dir.Magnitude
+                
+                if dist > arrivalDist then
+                    -- Push character towards target smoothly using AssemblyLinearVelocity
+                    hrp.AssemblyLinearVelocity = dir.Unit * flySpeed
+                    
+                    -- Keep character upright and looking in the direction of movement
+                    local lookAtPos = Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z)
+                    if (lookAtPos - hrp.Position).Magnitude > 0.5 then
+                        hrp.CFrame = CFrame.lookAt(hrp.Position, lookAtPos)
+                    end
+                else
+                    -- Stop moving when arrived
+                    hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                end
+            else
+                -- Hover in place if idle
+                hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
             end
         else
             if hum then hum.PlatformStand = false end
