@@ -14,7 +14,9 @@ local trackedEggs = {
     ["95155753812330"] = {DisplayName = "Soul Egg", Icon = "👻", ImageId = "113516441036388", Price = "Ethereal", Rarity = "Ghost", Color = Color3.fromRGB(120, 220, 255)},
     ["109698896973127"] = {DisplayName = "Skull Egg", Icon = "💀", ImageId = "133763014063788", Price = "Dark", Rarity = "Bone", Color = Color3.fromRGB(180, 180, 180)},
     ["6932488731"] = {DisplayName = "Blackhole Egg", Icon = "🕳️", ImageId = "", Price = "100B", Rarity = "Ethereal", Color = Color3.fromRGB(80, 80, 80)},
-    ["99624357990460"] = {DisplayName = "Cherub Egg", Icon = "😇", ImageId = "", Price = "1T", Rarity = "Ethereal", Color = Color3.fromRGB(255, 255, 100)}
+    ["99624357990460"] = {DisplayName = "Cherub Egg", Icon = "😇", ImageId = "", Price = "1T", Rarity = "Ethereal", Color = Color3.fromRGB(255, 255, 100)},
+    ["117873240464114"] = {DisplayName = "Ethereal Egg", Icon = "✨", ImageId = "117873240464114", Price = "300B", Rarity = "Ethereal", Color = Color3.fromRGB(150, 100, 255)},
+    ["90215169967263"] = {DisplayName = "Divine Egg", Icon = "🌠", ImageId = "90215169967263", Price = "300M", Rarity = "Divine", Color = Color3.fromRGB(100, 200, 255)}
 }
 
 local selectedTargetEggs = {} 
@@ -49,48 +51,48 @@ end
 
 -- TOP CENTER RARE NOTIFICATION
 local notifFrame = Instance.new("Frame")
-notifFrame.Size = UDim2.new(0, 320, 0, 70)
-notifFrame.Position = UDim2.new(0.5, -160, 0, -100)
+notifFrame.Size = UDim2.new(0, 280, 0, 60)
+notifFrame.Position = UDim2.new(0.5, -140, 0, -100)
 notifFrame.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
 notifFrame.BorderSizePixel = 0
 notifFrame.Parent = screenGui
 
 local notifCorner = Instance.new("UICorner")
-notifCorner.CornerRadius = UDim.new(0, 10)
+notifCorner.CornerRadius = UDim.new(0, 8)
 notifCorner.Parent = notifFrame
 
 local notifStroke = Instance.new("UIStroke")
 notifStroke.Color = Color3.fromRGB(255, 255, 255)
-notifStroke.Thickness = 2
+notifStroke.Thickness = 1.5
 notifStroke.Transparency = 0.5
 notifStroke.Parent = notifFrame
 
 local notifIcon = Instance.new("TextLabel")
-notifIcon.Size = UDim2.new(0, 50, 1, 0)
+notifIcon.Size = UDim2.new(0, 40, 1, 0)
 notifIcon.BackgroundTransparency = 1
 notifIcon.Text = "🌟"
-notifIcon.TextSize = 32
+notifIcon.TextSize = 26
 notifIcon.Parent = notifFrame
 
 local notifTitle = Instance.new("TextLabel")
-notifTitle.Size = UDim2.new(1, -60, 0, 25)
-notifTitle.Position = UDim2.new(0, 55, 0, 12)
+notifTitle.Size = UDim2.new(1, -50, 0, 22)
+notifTitle.Position = UDim2.new(0, 45, 0, 8)
 notifTitle.BackgroundTransparency = 1
 notifTitle.Text = "RARE EGG SPAWNED!"
 notifTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 notifTitle.Font = Enum.Font.GothamBlack
-notifTitle.TextSize = 16
+notifTitle.TextSize = 14
 notifTitle.TextXAlignment = Enum.TextXAlignment.Left
 notifTitle.Parent = notifFrame
 
 local notifSub = Instance.new("TextLabel")
-notifSub.Size = UDim2.new(1, -60, 0, 20)
-notifSub.Position = UDim2.new(0, 55, 0, 38)
+notifSub.Size = UDim2.new(1, -50, 0, 18)
+notifSub.Position = UDim2.new(0, 45, 0, 30)
 notifSub.BackgroundTransparency = 1
 notifSub.Text = "Cherub Egg is now available!"
 notifSub.TextColor3 = Color3.fromRGB(200, 210, 230)
 notifSub.Font = Enum.Font.GothamBold
-notifSub.TextSize = 12
+notifSub.TextSize = 11
 notifSub.TextXAlignment = Enum.TextXAlignment.Left
 notifSub.Parent = notifFrame
 
@@ -112,8 +114,8 @@ local function showTopNotif(name)
     notifSub.Text = "Look up! It's currently available in the world."
     notifStroke.Color = data.Color
 
-    notifFrame.Position = UDim2.new(0.5, -160, 0, -100)
-    TweenService:Create(notifFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -160, 0, 20)}):Play()
+    notifFrame.Position = UDim2.new(0.5, -140, 0, -100)
+    TweenService:Create(notifFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -140, 0, 20)}):Play()
     
     pcall(function()
         local snd = Instance.new("Sound")
@@ -125,18 +127,18 @@ local function showTopNotif(name)
     end)
 
     notifThread = task.delay(5, function()
-        TweenService:Create(notifFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {Position = UDim2.new(0.5, -160, 0, -100)}):Play()
+        TweenService:Create(notifFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {Position = UDim2.new(0.5, -140, 0, -100)}):Play()
         notifThread = nil
     end)
 end
 
 -- MINIMIZED ICON
 local miniIcon = Instance.new("TextButton")
-miniIcon.Size = UDim2.new(0, 50, 0, 50)
+miniIcon.Size = UDim2.new(0, 40, 0, 40)
 miniIcon.Position = UDim2.new(0.03, 0, 0.3, 0)
 miniIcon.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
 miniIcon.Text = "🥚"
-miniIcon.TextSize = 30
+miniIcon.TextSize = 24
 miniIcon.Visible = false
 miniIcon.Parent = screenGui
 miniIcon.Active = true
@@ -147,12 +149,12 @@ miniCorner.Parent = miniIcon
 
 local miniStroke = Instance.new("UIStroke")
 miniStroke.Color = Color3.fromRGB(50, 55, 70)
-miniStroke.Thickness = 2
+miniStroke.Thickness = 1.5
 miniStroke.Parent = miniIcon
 
 -- MAIN WINDOW
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 290, 0, 380)
+mainFrame.Size = UDim2.new(0, 240, 0, 310)
 mainFrame.Position = UDim2.new(0.03, 0, 0.3, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
 mainFrame.BorderSizePixel = 0
@@ -161,7 +163,7 @@ mainFrame.Active = true
 mainFrame.Parent = screenGui
 
 local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0, 10)
+mainCorner.CornerRadius = UDim.new(0, 8)
 mainCorner.Parent = mainFrame
 
 local mainStroke = Instance.new("UIStroke")
@@ -170,99 +172,99 @@ mainStroke.Thickness = 1
 mainStroke.Parent = mainFrame
 
 local header = Instance.new("Frame")
-header.Size = UDim2.new(1, 0, 0, 45)
+header.Size = UDim2.new(1, 0, 0, 34)
 header.BackgroundColor3 = Color3.fromRGB(25, 28, 35)
 header.BorderSizePixel = 0
 header.Parent = mainFrame
 header.Active = true
 
 local headerCorner = Instance.new("UICorner")
-headerCorner.CornerRadius = UDim.new(0, 10)
+headerCorner.CornerRadius = UDim.new(0, 8)
 headerCorner.Parent = header
 
 local titleText = Instance.new("TextLabel")
-titleText.Size = UDim2.new(1, -100, 1, 0)
-titleText.Position = UDim2.new(0, 12, 0, 0)
+titleText.Size = UDim2.new(1, -60, 1, 0)
+titleText.Position = UDim2.new(0, 8, 0, 0)
 titleText.BackgroundTransparency = 1
 titleText.Text = "🥚 PET RADAR"
 titleText.TextColor3 = Color3.fromRGB(245, 245, 250)
 titleText.Font = Enum.Font.GothamBold
-titleText.TextSize = 13
+titleText.TextSize = 11
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Parent = header
 
 local miniBtn = Instance.new("TextButton")
-miniBtn.Size = UDim2.new(0, 30, 0, 30)
-miniBtn.Position = UDim2.new(1, -68, 0.5, -15)
+miniBtn.Size = UDim2.new(0, 22, 0, 22)
+miniBtn.Position = UDim2.new(1, -52, 0.5, -11)
 miniBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
 miniBtn.Text = "—"
 miniBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 miniBtn.Font = Enum.Font.GothamBold
-miniBtn.TextSize = 16
+miniBtn.TextSize = 12
 miniBtn.Parent = header
 
 local miniBtnCorner = Instance.new("UICorner")
-miniBtnCorner.CornerRadius = UDim.new(0, 6)
+miniBtnCorner.CornerRadius = UDim.new(0, 5)
 miniBtnCorner.Parent = miniBtn
 
 local exitBtn = Instance.new("TextButton")
-exitBtn.Size = UDim2.new(0, 30, 0, 30)
-exitBtn.Position = UDim2.new(1, -34, 0.5, -15)
+exitBtn.Size = UDim2.new(0, 22, 0, 22)
+exitBtn.Position = UDim2.new(1, -26, 0.5, -11)
 exitBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 60)
 exitBtn.Text = "✕"
 exitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 exitBtn.Font = Enum.Font.GothamBold
-exitBtn.TextSize = 14
+exitBtn.TextSize = 11
 exitBtn.Parent = header
 
 local exitCorner = Instance.new("UICorner")
-exitCorner.CornerRadius = UDim.new(0, 6)
+exitCorner.CornerRadius = UDim.new(0, 5)
 exitCorner.Parent = exitBtn
 
 local controlBar = Instance.new("Frame")
-controlBar.Size = UDim2.new(1, -16, 0, 35)
-controlBar.Position = UDim2.new(0, 8, 0, 50)
+controlBar.Size = UDim2.new(1, -10, 0, 26)
+controlBar.Position = UDim2.new(0, 5, 0, 38)
 controlBar.BackgroundColor3 = Color3.fromRGB(30, 33, 40)
 controlBar.BorderSizePixel = 0
 controlBar.Parent = mainFrame
 
 local controlCorner = Instance.new("UICorner")
-controlCorner.CornerRadius = UDim.new(0, 8)
+controlCorner.CornerRadius = UDim.new(0, 6)
 controlCorner.Parent = controlBar
 
 local modeBtn = Instance.new("TextButton")
-modeBtn.Size = UDim2.new(0.45, 0, 0, 25)
-modeBtn.Position = UDim2.new(0.04, 0, 0.5, -12.5)
+modeBtn.Size = UDim2.new(0.45, 0, 0, 20)
+modeBtn.Position = UDim2.new(0.03, 0, 0.5, -10)
 modeBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
 modeBtn.Text = "📏 Line"
 modeBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
 modeBtn.Font = Enum.Font.GothamBold
-modeBtn.TextSize = 11
+modeBtn.TextSize = 9
 modeBtn.Parent = controlBar
 
 local modeCorner = Instance.new("UICorner")
-modeCorner.CornerRadius = UDim.new(0, 6)
+modeCorner.CornerRadius = UDim.new(0, 5)
 modeCorner.Parent = modeBtn
 
 local pickupBtn = Instance.new("TextButton")
-pickupBtn.Size = UDim2.new(0.45, 0, 0, 25)
-pickupBtn.Position = UDim2.new(0.51, 0, 0.5, -12.5)
+pickupBtn.Size = UDim2.new(0.45, 0, 0, 20)
+pickupBtn.Position = UDim2.new(0.52, 0, 0.5, -10)
 pickupBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
 pickupBtn.Text = "🤖 Pickup: OFF"
 pickupBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
 pickupBtn.Font = Enum.Font.GothamBold
-pickupBtn.TextSize = 11
+pickupBtn.TextSize = 9
 pickupBtn.Parent = controlBar
 
 local pickupCorner = Instance.new("UICorner")
-pickupCorner.CornerRadius = UDim.new(0, 6)
+pickupCorner.CornerRadius = UDim.new(0, 5)
 pickupCorner.Parent = pickupBtn
 
 local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1, -16, 1, -95)
-scrollFrame.Position = UDim2.new(0, 8, 0, 92)
+scrollFrame.Size = UDim2.new(1, -10, 1, -70)
+scrollFrame.Position = UDim2.new(0, 5, 0, 68)
 scrollFrame.BackgroundTransparency = 1
-scrollFrame.ScrollBarThickness = 3
+scrollFrame.ScrollBarThickness = 2
 scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 105, 120)
 scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
@@ -270,14 +272,14 @@ scrollFrame.BorderSizePixel = 0
 scrollFrame.Parent = mainFrame
 
 local uiLayout = Instance.new("UIListLayout")
-uiLayout.Padding = UDim.new(0, 6)
+uiLayout.Padding = UDim.new(0, 4)
 uiLayout.Parent = scrollFrame
 
 local eggUI = {}
 
 for meshId, data in pairs(trackedEggs) do
     local card = Instance.new("TextButton")
-    card.Size = UDim2.new(1, 0, 0, 52)
+    card.Size = UDim2.new(1, 0, 0, 36)
     card.BackgroundColor3 = Color3.fromRGB(28, 31, 38)
     card.BorderSizePixel = 0
     card.AutoButtonColor = false
@@ -285,7 +287,7 @@ for meshId, data in pairs(trackedEggs) do
     card.Parent = scrollFrame
     
     local cardCorner = Instance.new("UICorner")
-    cardCorner.CornerRadius = UDim.new(0, 8)
+    cardCorner.CornerRadius = UDim.new(0, 6)
     cardCorner.Parent = card
     
     local cardStroke = Instance.new("UIStroke")
@@ -294,14 +296,14 @@ for meshId, data in pairs(trackedEggs) do
     cardStroke.Parent = card
 
     local accent = Instance.new("Frame")
-    accent.Size = UDim2.new(0, 4, 1, -12)
-    accent.Position = UDim2.new(0, 6, 0, 6)
+    accent.Size = UDim2.new(0, 3, 1, -6)
+    accent.Position = UDim2.new(0, 4, 0, 3)
     accent.BackgroundColor3 = data.Color
     accent.BorderSizePixel = 0
     accent.Parent = card
     
     local accentCorner = Instance.new("UICorner")
-    accentCorner.CornerRadius = UDim.new(0, 4)
+    accentCorner.CornerRadius = UDim.new(0, 3)
     accentCorner.Parent = accent
 
     local iconLabel
@@ -312,42 +314,42 @@ for meshId, data in pairs(trackedEggs) do
     else
         iconLabel = Instance.new("TextLabel")
         iconLabel.Text = data.Icon
-        iconLabel.TextSize = 20
+        iconLabel.TextSize = 16
         iconLabel.BackgroundTransparency = 1
     end
-    iconLabel.Size = UDim2.new(0, 30, 0, 30)
-    iconLabel.Position = UDim2.new(0, 16, 0.5, -15)
+    iconLabel.Size = UDim2.new(0, 22, 0, 22)
+    iconLabel.Position = UDim2.new(0, 12, 0.5, -11)
     iconLabel.Parent = card
     
     local iconCorner = Instance.new("UICorner")
-    iconCorner.CornerRadius = UDim.new(0, 6)
+    iconCorner.CornerRadius = UDim.new(0, 4)
     iconCorner.Parent = iconLabel
 
     local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(0.5, -15, 0, 18)
-    nameLabel.Position = UDim2.new(0, 52, 0, 6)
+    nameLabel.Size = UDim2.new(0.5, -10, 0, 15)
+    nameLabel.Position = UDim2.new(0, 40, 0, 5)
     nameLabel.BackgroundTransparency = 1
     nameLabel.Text = data.DisplayName
     nameLabel.TextColor3 = Color3.fromRGB(235, 235, 240)
     nameLabel.TextXAlignment = Enum.TextXAlignment.Left
     nameLabel.Font = Enum.Font.GothamBold
-    nameLabel.TextSize = 12
+    nameLabel.TextSize = 10
     nameLabel.Parent = card
 
     local infoLabel = Instance.new("TextLabel")
-    infoLabel.Size = UDim2.new(0.5, -15, 0, 14)
-    infoLabel.Position = UDim2.new(0, 52, 0, 24)
+    infoLabel.Size = UDim2.new(0.5, -10, 0, 12)
+    infoLabel.Position = UDim2.new(0, 40, 0, 20)
     infoLabel.BackgroundTransparency = 1
     infoLabel.Text = data.Rarity .. " • " .. data.Price
     infoLabel.TextColor3 = Color3.fromRGB(140, 145, 160)
     infoLabel.TextXAlignment = Enum.TextXAlignment.Left
     infoLabel.Font = Enum.Font.Gotham
-    infoLabel.TextSize = 10
+    infoLabel.TextSize = 9
     infoLabel.Parent = card
 
     local statusDot = Instance.new("Frame")
-    statusDot.Size = UDim2.new(0, 6, 0, 6)
-    statusDot.Position = UDim2.new(1, -80, 0.5, -3)
+    statusDot.Size = UDim2.new(0, 5, 0, 5)
+    statusDot.Position = UDim2.new(1, -65, 0.5, -2.5)
     statusDot.BackgroundColor3 = Color3.fromRGB(240, 70, 70)
     statusDot.BorderSizePixel = 0
     statusDot.Parent = card
@@ -357,14 +359,14 @@ for meshId, data in pairs(trackedEggs) do
     dotCorner.Parent = statusDot
 
     local statusLabel = Instance.new("TextLabel")
-    statusLabel.Size = UDim2.new(0, 68, 0, 20)
-    statusLabel.Position = UDim2.new(1, -70, 0.5, -10)
+    statusLabel.Size = UDim2.new(0, 55, 0, 12)
+    statusLabel.Position = UDim2.new(1, -58, 0.5, -6)
     statusLabel.BackgroundTransparency = 1
     statusLabel.Text = "UNAVAILABLE"
     statusLabel.TextColor3 = Color3.fromRGB(150, 155, 170)
     statusLabel.TextXAlignment = Enum.TextXAlignment.Left
     statusLabel.Font = Enum.Font.GothamBold
-    statusLabel.TextSize = 8
+    statusLabel.TextSize = 7
     statusLabel.Parent = card
 
     card.MouseButton1Click:Connect(function()
@@ -377,7 +379,7 @@ for meshId, data in pairs(trackedEggs) do
             selectedTargetEggs[data.DisplayName] = true
             card.BackgroundColor3 = Color3.fromRGB(50, 80, 160) 
             cardStroke.Color = Color3.fromRGB(0, 255, 120)     
-            cardStroke.Thickness = 2.5
+            cardStroke.Thickness = 2
         end
     end)
 
@@ -566,7 +568,7 @@ task.spawn(function()
                 ui.Status.TextColor3 = Color3.fromRGB(60, 230, 120)
                 ui.Dot.BackgroundColor3 = Color3.fromRGB(60, 230, 120)
                 
-                if (displayName == "Cherub Egg" or displayName == "Blackhole Egg") and not notifiedEggs[displayName] then
+                if (displayName == "Cherub Egg" or displayName == "Blackhole Egg" or displayName == "Ethereal Egg" or displayName == "Divine Egg") and not notifiedEggs[displayName] then
                     showTopNotif(displayName)
                     notifiedEggs[displayName] = true
                 end
@@ -611,35 +613,49 @@ RunService.RenderStepped:Connect(function()
         end
         local playerAtt = hrp:FindFirstChild("PlayerRadarAtt")
 
+        -- REVISED ARROW ESP UI SETUP
         local arrowGui = hrp:FindFirstChild("NavArrowGui")
         if not arrowGui then
             arrowGui = Instance.new("BillboardGui")
             arrowGui.Name = "NavArrowGui"
-            arrowGui.Size = UDim2.new(0, 100, 0, 60)
+            arrowGui.Size = UDim2.new(0, 120, 0, 120)
             arrowGui.StudsOffset = Vector3.new(0, 5, 0)
             arrowGui.AlwaysOnTop = true
             arrowGui.Adornee = hrp
             arrowGui.Parent = hrp
 
-            local arrowLabel = Instance.new("TextLabel")
-            arrowLabel.Name = "ArrowText"
-            arrowLabel.Size = UDim2.new(1, 0, 0, 35)
-            arrowLabel.BackgroundTransparency = 1
-            arrowLabel.Text = "🎯"
-            arrowLabel.TextColor3 = Color3.fromRGB(0, 255, 120)
-            arrowLabel.Font = Enum.Font.GothamBold
-            arrowLabel.TextSize = 30
-            arrowLabel.Parent = arrowGui
+            local baseCircle = Instance.new("Frame")
+            baseCircle.Name = "BaseCircle"
+            baseCircle.Size = UDim2.new(0, 30, 0, 30)
+            baseCircle.Position = UDim2.new(0.5, -15, 0.5, -15)
+            baseCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+            baseCircle.BorderSizePixel = 0
+            baseCircle.Parent = arrowGui
+            
+            local baseCorner = Instance.new("UICorner")
+            baseCorner.CornerRadius = UDim.new(1, 0)
+            baseCorner.Parent = baseCircle
+
+            local arrowImg = Instance.new("ImageLabel")
+            arrowImg.Name = "ArrowImage"
+            arrowImg.Size = UDim2.new(0, 60, 0, 60)
+            arrowImg.Position = UDim2.new(0.5, -30, 0, -15)
+            arrowImg.BackgroundTransparency = 1
+            arrowImg.Image = "rbxassetid://107233777" 
+            arrowImg.ImageColor3 = Color3.fromRGB(0, 255, 120)
+            arrowImg.Parent = arrowGui
 
             local distLabel = Instance.new("TextLabel")
             distLabel.Name = "DistText"
             distLabel.Size = UDim2.new(1, 0, 0, 20)
-            distLabel.Position = UDim2.new(0, 0, 0, 35)
+            distLabel.Position = UDim2.new(0, 0, 0, 75)
             distLabel.BackgroundTransparency = 1
             distLabel.Text = "0m"
             distLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-            distLabel.Font = Enum.Font.GothamBold
-            distLabel.TextSize = 14
+            distLabel.TextStrokeTransparency = 0.3
+            distLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+            distLabel.Font = Enum.Font.GothamBlack
+            distLabel.TextSize = 18
             distLabel.Parent = arrowGui
         end
 
@@ -687,26 +703,35 @@ RunService.RenderStepped:Connect(function()
         
         if currentEspMode == "Arrow" and closestAdornee then
             arrowGui.Enabled = true
+            
             local lookVector = hrp.CFrame.LookVector
             local targetDir = (closestAdornee.Position - hrp.Position).Unit
             local look2D = Vector2.new(lookVector.X, lookVector.Z).Unit
             local target2D = Vector2.new(targetDir.X, targetDir.Z).Unit
+            
             local angle = math.atan2(target2D.Y, target2D.X) - math.atan2(look2D.Y, look2D.X)
             local degrees = math.deg(angle)
             
-            local arrowText = arrowGui:FindFirstChild("ArrowText")
+            local arrowImg = arrowGui:FindFirstChild("ArrowImage")
             local distText = arrowGui:FindFirstChild("DistText")
-            if arrowText then
-                arrowText.Rotation = -degrees
+            local baseCircle = arrowGui:FindFirstChild("BaseCircle")
+            
+            if arrowImg then
+                arrowImg.Rotation = -degrees
+                
                 local dotProduct = look2D:Dot(target2D)
                 if dotProduct > 0.85 then
-                    arrowText.TextColor3 = Color3.fromRGB(0, 255, 120)
+                    arrowImg.ImageColor3 = Color3.fromRGB(0, 255, 120)
+                    if baseCircle then baseCircle.BackgroundColor3 = Color3.fromRGB(0, 255, 120) end
                 elseif dotProduct > 0.3 then
-                    arrowText.TextColor3 = Color3.fromRGB(255, 200, 50)
+                    arrowImg.ImageColor3 = Color3.fromRGB(255, 200, 50)
+                    if baseCircle then baseCircle.BackgroundColor3 = Color3.fromRGB(255, 200, 50) end
                 else
-                    arrowText.TextColor3 = Color3.fromRGB(255, 60, 60)
+                    arrowImg.ImageColor3 = Color3.fromRGB(255, 60, 60)
+                    if baseCircle then baseCircle.BackgroundColor3 = Color3.fromRGB(255, 60, 60) end
                 end
             end
+            
             if distText then
                 distText.Text = math.floor(closestDist) .. "m"
             end
@@ -722,4 +747,23 @@ RunService.RenderStepped:Connect(function()
             hum:MoveTo(hrp.Position)
         end
     end
+end)
+
+exitBtn.MouseButton1Click:Connect(function()
+    for eggInst, _ in pairs(activeEggs) do
+        clearESPForEgg(eggInst)
+    end
+    activeEggs = {}
+    
+    local char = player.Character
+    if char then
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local att = hrp:FindFirstChild("PlayerRadarAtt")
+            if att then att:Destroy() end
+            local arrowGui = hrp:FindFirstChild("NavArrowGui")
+            if arrowGui then arrowGui:Destroy() end
+        end
+    end
+    screenGui:Destroy()
 end)
