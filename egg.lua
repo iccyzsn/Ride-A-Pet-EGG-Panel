@@ -27,8 +27,10 @@ local autoPickupEnabled = false
 local notifiedEggs = {}
 
 -- AUTO PICKUP STATE
-local autoPickupState = "Idle" -- "Idle", "ToEgg", "ToPlot", "Dropping"
+local autoPickupState = "Idle" -- "Idle", "ToEgg", "ToPlot"
 local targetEgg = nil
+local targetPos = nil
+local arrivalDist = 3
 local flySpeed = 150
 local noclipActive = false
 local pickupCooldown = 0
@@ -432,6 +434,7 @@ pickupBtn.MouseButton1Click:Connect(function()
         autoPickupState = "Idle"
         eggTimer = 0
         targetEgg = nil
+        targetPos = nil
         noclipActive = true
     else
         pickupBtn.Text = "🤖 Pickup: OFF"
@@ -439,6 +442,7 @@ pickupBtn.MouseButton1Click:Connect(function()
         autoPickupState = "Idle"
         eggTimer = 0
         targetEgg = nil
+        targetPos = nil
         noclipActive = false
         local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
         if hum then hum.PlatformStand = false end
@@ -585,7 +589,7 @@ local function findPlayerPlot()
     return nil
 end
 
--- Cached plot accessor (avoids expensive per-frame Workspace scan)
+-- Cached plot accessor
 local cachedPlot = nil
 local plotCacheTime = 0
 local function getCachedPlot()
@@ -854,101 +858,78 @@ RunService.RenderStepped:Connect(function(dt)
         end
 
         -- ==========================================================
-        -- AUTO PICKUP & FLIGHT (FIXED)
+        -- AUTO PICKUP & FLIGHT (using provided logic)
         -- ==========================================================
         if autoPickupEnabled then
-            hum.PlatformStand = true
+            hum.PlatformStand = true -- Disables normal walking physics to allow flying
             pickupCooldown = math.max(0, pickupCooldown - dt)
 
-            local targetPos = nil
-            local arrivalDist = 3
+            -- Reset targetPos each frame; each state sets it as needed
+            targetPos = nil
 
-            ----------------------------------------------------------
-            -- STATE: IDLE - pick a fresh target egg
-            ----------------------------------------------------------
             if autoPickupState == "Idle" then
                 noclipActive = true
                 eggTimer = 0
-                targetEgg = nil
-
-                local bestEgg, bestDist = nil, math.huge
-                for eggInst, _ in pairs(activeEggs) do
-                    if eggInst and eggInst.Parent then
-                        local adornee = getAdornee(eggInst)
-                        if adornee then
-                            local d = (adornee.Position - hrp.Position).Magnitude
-                            if d < bestDist then
-                                bestDist = d
-                                bestEgg = eggInst
-                            end
-                        end
-                    end
+                if closestEggInst then
+                    targetEgg = closestEggInst
+                    autoPickupState = "ToEgg" -- Begin traveling to the egg
                 end
 
-                if bestEgg then
-                    targetEgg = bestEgg
-                    autoPickupState = "ToEgg"
-                    eggTimer = 0
-                end
-
-            ----------------------------------------------------------
-            -- STATE: TO EGG - fly to target, spam interactions
-            ----------------------------------------------------------
             elseif autoPickupState == "ToEgg" then
-                -- Egg destroyed = successfully picked up
+                -- If egg disappears, switch to going back to base
                 if not targetEgg or not targetEgg.Parent then
-                    targetEgg = nil
                     autoPickupState = "ToPlot"
+                    targetEgg = nil
                     eggTimer = 0
                 else
                     local adornee = getAdornee(targetEgg)
-                    if not adornee then
-                        targetEgg = nil
-                        autoPickupState = "ToPlot"
-                        eggTimer = 0
-                    else
-                        local eggDist = (adornee.Position - hrp.Position).Magnitude
-                        targetPos = adornee.Position + Vector3.new(0, 2, 0)
+                    if adornee then
+                        local toEggDist = (adornee.Position - hrp.Position).Magnitude
+                        targetPos = adornee.Position + Vector3.new(0, 3, 0)
                         arrivalDist = 3
 
-                        if eggDist < 12 then
-                            -- Near egg: disable noclip so .Touched / prompts fire
-                            noclipActive = false
+                        -- When player is within 8 studs of the egg:
+                        if toEggDist < 8 then
+                            noclipActive = false -- let touch/prompts register
                             eggTimer = eggTimer + dt
 
-                            if pickupCooldown <= 0 then
+                            -- Fire the pickup interaction every 0.5 seconds
+                            if pickupCooldown == 0 then
                                 fireInteractions(targetEgg)
-                                fireInteractions(adornee)
+                                if adornee ~= targetEgg then fireInteractions(adornee) end
                                 pcall(function()
                                     firetouchinterest(hrp, adornee, 0)
                                     firetouchinterest(hrp, adornee, 1)
                                 end)
-                                pickupCooldown = 0.35
+                                pickupCooldown = 0.5
                             end
 
-                            -- Picked up mid-spam
-                            if not targetEgg or not targetEgg.Parent then
-                                targetEgg = nil
+                            -- If 3 seconds pass, assume it was picked up or failed, return to plot
+                            if eggTimer > 3 then
                                 autoPickupState = "ToPlot"
+                                targetEgg = nil
                                 eggTimer = 0
-                            -- Fallback: stuck too long, give up and go home
-                            elseif eggTimer > 6 then
-                                targetEgg = nil
+                            end
+
+                            -- Egg got picked up mid-spam
+                            if not targetEgg or not targetEgg.Parent then
                                 autoPickupState = "ToPlot"
+                                targetEgg = nil
                                 eggTimer = 0
                             end
                         else
-                            -- Still travelling: noclip on
-                            noclipActive = true
+                            noclipActive = true -- still traveling, phase through obstacles
                             eggTimer = 0
                         end
+                    else
+                        autoPickupState = "ToPlot"
+                        targetEgg = nil
+                        eggTimer = 0
                     end
                 end
 
-            ----------------------------------------------------------
-            -- STATE: TO PLOT - fly home
-            ----------------------------------------------------------
             elseif autoPickupState == "ToPlot" then
+                -- Logic for flying back to the player's plot
                 noclipActive = true
                 eggTimer = 0
 
@@ -959,71 +940,47 @@ RunService.RenderStepped:Connect(function(dt)
 
                     local distToPlot = (targetPos - hrp.Position).Magnitude
                     if distToPlot < 12 then
-                        autoPickupState = "Dropping"
+                        -- Arrived at plot: fire drop-off prompts, then hunt next egg
+                        noclipActive = false
+                        fireInteractions(plotBase)
+                        if plotBase.Parent then
+                            fireInteractions(plotBase.Parent)
+                        end
+                        autoPickupState = "Idle"
+                        targetPos = nil
                         eggTimer = 0
-                        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
                     end
                 else
                     -- No plot found, just idle in place
                     autoPickupState = "Idle"
-                end
-
-            ----------------------------------------------------------
-            -- STATE: DROPPING - settle on plot, allow drop-off prompts
-            ----------------------------------------------------------
-            elseif autoPickupState == "Dropping" then
-                noclipActive = false
-                eggTimer = eggTimer + dt
-
-                local plotBase = getCachedPlot()
-                if plotBase and plotBase.Parent then
-                    local basePos = plotBase.Position + Vector3.new(0, 8, 0)
-                    hrp.CFrame = CFrame.new(basePos, basePos + hrp.CFrame.LookVector)
-
-                    fireInteractions(plotBase)
-                    if plotBase.Parent then
-                        fireInteractions(plotBase.Parent)
-                    end
-                end
-
-                if eggTimer > 2.5 then
-                    autoPickupState = "Idle"
-                    eggTimer = 0
+                    targetPos = nil
                 end
             end
 
-            ----------------------------------------------------------
-            -- FLIGHT (only during ToEgg / ToPlot)
-            ----------------------------------------------------------
-            if autoPickupState == "ToEgg" or autoPickupState == "ToPlot" then
-                if targetPos then
-                    local dir = targetPos - hrp.Position
-                    local dist = dir.Magnitude
-
-                    if dist > arrivalDist then
-                        hrp.AssemblyLinearVelocity = dir.Unit * flySpeed
-
-                        local lookAtPos = Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z)
-                        if (lookAtPos - hrp.Position).Magnitude > 0.5 then
-                            hrp.CFrame = CFrame.lookAt(hrp.Position, lookAtPos)
-                        end
-                    else
-                        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            -- MOVEMENT APPLIER: Flies the player toward targetPos
+            if targetPos then
+                local dir = (targetPos - hrp.Position)
+                local dist = dir.Magnitude
+                if dist > arrivalDist then
+                    -- Fly towards the egg at the speed set in the GUI
+                    hrp.AssemblyLinearVelocity = dir.Unit * flySpeed
+                    -- Look at the target
+                    local lookAtPos = Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z)
+                    if (lookAtPos - hrp.Position).Magnitude > 0.5 then
+                        hrp.CFrame = CFrame.lookAt(hrp.Position, lookAtPos)
                     end
                 else
-                    hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                    hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0) -- Stop moving
                 end
-            elseif autoPickupState == "Idle" or autoPickupState == "Dropping" then
-                if autoPickupState == "Idle" then
-                    hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                end
+            else
+                hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
             end
-
         else
             hum.PlatformStand = false
             noclipActive = false
             autoPickupState = "Idle"
             targetEgg = nil
+            targetPos = nil
         end
     end
 end)
