@@ -5,7 +5,7 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 
--- EGG DATABASE (ImageId removed, emoji only)
+-- EGG DATABASE
 local trackedEggs = {
     ["152975769"] = {DisplayName = "Flaming Egg", Icon = "🔥", Price = "Rare", Rarity = "Fire", Color = Color3.fromRGB(255, 120, 30)},
     ["70549049033717"] = {DisplayName = "Sinister Egg", Icon = "😈", Price = "Secret", Rarity = "Dark", Color = Color3.fromRGB(220, 40, 60)},
@@ -24,8 +24,10 @@ local currentEspIndex = 1
 local autoPickupEnabled = false
 local notifiedEggs = {}
 
-local teleportToEggEnabled = false
-local teleportToPlotEnabled = false
+-- FLY TOGGLES
+local flyToEggEnabled = false
+local flyToPlotEnabled = false
+local flySpeed = 55 -- studs per second (feel free to tweak)
 
 local excludePaths = {"Plots", "Plot", "Ranch", "Backpack", "Base", "Farm", "House"} 
 
@@ -51,7 +53,7 @@ if not success then
     screenGui.Parent = player:WaitForChild("PlayerGui")
 end
 
--- TOP CENTER RARE NOTIFICATION (compact)
+-- TOP CENTER RARE NOTIFICATION
 local notifFrame = Instance.new("Frame")
 notifFrame.Size = UDim2.new(0, 240, 0, 52)
 notifFrame.Position = UDim2.new(0.5, -120, 0, -80)
@@ -154,7 +156,7 @@ miniStroke.Color = Color3.fromRGB(50, 55, 70)
 miniStroke.Thickness = 1.5
 miniStroke.Parent = miniIcon
 
--- MAIN WINDOW (compact: 220 x 290)
+-- MAIN WINDOW
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 220, 0, 290)
 mainFrame.Position = UDim2.new(0.03, 0, 0.3, 0)
@@ -173,7 +175,6 @@ mainStroke.Color = Color3.fromRGB(50, 55, 70)
 mainStroke.Thickness = 1
 mainStroke.Parent = mainFrame
 
--- HEADER (32px)
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 32)
 header.BackgroundColor3 = Color3.fromRGB(25, 28, 35)
@@ -224,7 +225,6 @@ local exitCorner = Instance.new("UICorner")
 exitCorner.CornerRadius = UDim.new(0, 5)
 exitCorner.Parent = exitBtn
 
--- CONTROL BAR (compact 2 rows)
 local controlBar = Instance.new("Frame")
 controlBar.Size = UDim2.new(1, -12, 0, 56)
 controlBar.Position = UDim2.new(0, 6, 0, 38)
@@ -265,34 +265,34 @@ local pickupCorner = Instance.new("UICorner")
 pickupCorner.CornerRadius = UDim.new(0, 5)
 pickupCorner.Parent = pickupBtn
 
--- Row 2
-local tpEggBtn = Instance.new("TextButton")
-tpEggBtn.Size = UDim2.new(0.47, 0, 0, 20)
-tpEggBtn.Position = UDim2.new(0.03, 0, 0, 30)
-tpEggBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
-tpEggBtn.Text = "⚡ TP Egg: OFF"
-tpEggBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
-tpEggBtn.Font = Enum.Font.GothamBold
-tpEggBtn.TextSize = 9
-tpEggBtn.Parent = controlBar
+-- Row 2 (FLY TOGGLES)
+local flyEggBtn = Instance.new("TextButton")
+flyEggBtn.Size = UDim2.new(0.47, 0, 0, 20)
+flyEggBtn.Position = UDim2.new(0.03, 0, 0, 30)
+flyEggBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
+flyEggBtn.Text = "🕊️ Fly Egg: OFF"
+flyEggBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
+flyEggBtn.Font = Enum.Font.GothamBold
+flyEggBtn.TextSize = 9
+flyEggBtn.Parent = controlBar
 
-local tpEggCorner = Instance.new("UICorner")
-tpEggCorner.CornerRadius = UDim.new(0, 5)
-tpEggCorner.Parent = tpEggBtn
+local flyEggCorner = Instance.new("UICorner")
+flyEggCorner.CornerRadius = UDim.new(0, 5)
+flyEggCorner.Parent = flyEggBtn
 
-local tpPlotBtn = Instance.new("TextButton")
-tpPlotBtn.Size = UDim2.new(0.47, 0, 0, 20)
-tpPlotBtn.Position = UDim2.new(0.50, 0, 0, 30)
-tpPlotBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
-tpPlotBtn.Text = "🏠 TP Plot: OFF"
-tpPlotBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
-tpPlotBtn.Font = Enum.Font.GothamBold
-tpPlotBtn.TextSize = 9
-tpPlotBtn.Parent = controlBar
+local flyPlotBtn = Instance.new("TextButton")
+flyPlotBtn.Size = UDim2.new(0.47, 0, 0, 20)
+flyPlotBtn.Position = UDim2.new(0.50, 0, 0, 30)
+flyPlotBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
+flyPlotBtn.Text = "🕊️ Fly Plot: OFF"
+flyPlotBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
+flyPlotBtn.Font = Enum.Font.GothamBold
+flyPlotBtn.TextSize = 9
+flyPlotBtn.Parent = controlBar
 
-local tpPlotCorner = Instance.new("UICorner")
-tpPlotCorner.CornerRadius = UDim.new(0, 5)
-tpPlotCorner.Parent = tpPlotBtn
+local flyPlotCorner = Instance.new("UICorner")
+flyPlotCorner.CornerRadius = UDim.new(0, 5)
+flyPlotCorner.Parent = flyPlotBtn
 
 -- SCROLL FRAME
 local scrollFrame = Instance.new("ScrollingFrame")
@@ -429,7 +429,7 @@ pickupBtn.MouseButton1Click:Connect(function()
 end)
 
 -- =========================================================
--- NOCLIP / TELEPORT HELPERS
+-- NOCLIP / FLY HELPERS
 -- =========================================================
 local function setNoclip(state)
     local char = player.Character
@@ -442,7 +442,7 @@ local function setNoclip(state)
 end
 
 local function refreshNoclip()
-    setNoclip(teleportToEggEnabled or teleportToPlotEnabled)
+    setNoclip(flyToEggEnabled or flyToPlotEnabled)
 end
 
 local function getMyPlot()
@@ -490,26 +490,26 @@ local function getPlotSpawnPosition(plot)
     return nil
 end
 
-tpEggBtn.MouseButton1Click:Connect(function()
-    teleportToEggEnabled = not teleportToEggEnabled
-    if teleportToEggEnabled then
-        tpEggBtn.Text = "⚡ TP Egg: ON"
-        tpEggBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 80)
+flyEggBtn.MouseButton1Click:Connect(function()
+    flyToEggEnabled = not flyToEggEnabled
+    if flyToEggEnabled then
+        flyEggBtn.Text = "🕊️ Fly Egg: ON"
+        flyEggBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 80)
     else
-        tpEggBtn.Text = "⚡ TP Egg: OFF"
-        tpEggBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
+        flyEggBtn.Text = "🕊️ Fly Egg: OFF"
+        flyEggBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
     end
     refreshNoclip()
 end)
 
-tpPlotBtn.MouseButton1Click:Connect(function()
-    teleportToPlotEnabled = not teleportToPlotEnabled
-    if teleportToPlotEnabled then
-        tpPlotBtn.Text = "🏠 TP Plot: ON"
-        tpPlotBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 80)
+flyPlotBtn.MouseButton1Click:Connect(function()
+    flyToPlotEnabled = not flyToPlotEnabled
+    if flyToPlotEnabled then
+        flyPlotBtn.Text = "🕊️ Fly Plot: ON"
+        flyPlotBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 80)
     else
-        tpPlotBtn.Text = "🏠 TP Plot: OFF"
-        tpPlotBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
+        flyPlotBtn.Text = "🕊️ Fly Plot: OFF"
+        flyPlotBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
     end
     refreshNoclip()
 end)
@@ -723,21 +723,32 @@ end)
 -- PLOT CACHE REFRESHER
 task.spawn(function()
     while task.wait(2) do
-        if teleportToPlotEnabled then
+        if flyToPlotEnabled then
             local plot = getMyPlot()
             cachedPlotPos = getPlotSpawnPosition(plot)
         end
     end
 end)
 
+-- FLY TOWARD A TARGET POSITION
+local function flyToward(hrp, targetPos, dt)
+    if not targetPos then return end
+    local diff = targetPos - hrp.Position
+    local dist = diff.Magnitude
+    if dist < 0.5 then return end
+    local step = math.min(flySpeed * dt, dist)
+    hrp.CFrame = hrp.CFrame + diff.Unit * step
+end
+
 -- MAIN RENDER LOOP
-RunService.RenderStepped:Connect(function()
+RunService.RenderStepped:Connect(function(dt)
     local char = player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChildOfClass("Humanoid")
     
     if hrp then
-        if teleportToEggEnabled or teleportToPlotEnabled then
+        -- keep noclip while flying
+        if flyToEggEnabled or flyToPlotEnabled then
             for _, p in ipairs(char:GetDescendants()) do
                 if p:IsA("BasePart") then p.CanCollide = false end
             end
@@ -873,8 +884,8 @@ RunService.RenderStepped:Connect(function()
             end
         end
 
-        -- TELEPORT TO EGG
-        if teleportToEggEnabled then
+        -- FLY TO NEAREST EGG
+        if flyToEggEnabled then
             local nearestEggPos = nil
             local nearestEggDist = math.huge
             for _, eggInst in pairs(currentFoundEggs) do
@@ -889,24 +900,27 @@ RunService.RenderStepped:Connect(function()
                     end
                 end
             end
-            if nearestEggPos then
-                hrp.CFrame = CFrame.new(nearestEggPos + Vector3.new(0, 3, 0))
+            if nearestEggPos and nearestEggDist > 3 then
+                flyToward(hrp, nearestEggPos + Vector3.new(0, 2, 0), dt)
             end
         end
 
-        -- TELEPORT TO PLOT
-        if teleportToPlotEnabled then
+        -- FLY TO MY PLOT
+        if flyToPlotEnabled then
             if not cachedPlotPos then
                 local plot = getMyPlot()
                 cachedPlotPos = getPlotSpawnPosition(plot)
             end
             if cachedPlotPos then
-                hrp.CFrame = CFrame.new(cachedPlotPos)
+                local d = (cachedPlotPos - hrp.Position).Magnitude
+                if d > 3 then
+                    flyToward(hrp, cachedPlotPos, dt)
+                end
             end
         end
 
-        -- Auto pickup
-        if autoPickupEnabled and hum and hum.Health > 0 and not teleportToEggEnabled and not teleportToPlotEnabled then
+        -- Auto pickup (disabled while flying)
+        if autoPickupEnabled and hum and hum.Health > 0 and not flyToEggEnabled and not flyToPlotEnabled then
             if closestAdornee then
                 if closestDist > 5 then
                     hum:MoveTo(closestAdornee.Position)
