@@ -699,7 +699,6 @@ local function attemptPickup(eggInst)
     end
 end
 
--- One full fly cycle; returns early instead of using `continue`
 local function runFlyCycle()
     local char = player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -726,7 +725,6 @@ local function runFlyCycle()
         return
     end
 
-    -- Fly to egg
     flyStatus.Text = "FLYING"
     flyStatus.TextColor3 = Color3.fromRGB(0, 200, 255)
 
@@ -750,7 +748,6 @@ local function runFlyCycle()
         task.wait(0.03)
     end
 
-    -- Pickup
     if reached and flyPickupEnabled then
         flyStatus.Text = "PICKING"
         flyStatus.TextColor3 = Color3.fromRGB(255, 200, 50)
@@ -758,7 +755,6 @@ local function runFlyCycle()
         task.wait(0.6)
     end
 
-    -- Fly to ranch
     if flyPickupEnabled then
         local ranchPos = getRanchPosition()
         if ranchPos then
