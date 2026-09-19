@@ -6,36 +6,28 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 
--- EGG DATABASE
+-- EGG DATABASE (UPDATED WITH YOUR EXACT IMAGE IDs)
 local trackedEggs = {
     ["152975769"] = {DisplayName = "Flaming Egg", Icon = "🔥", ImageId = "", Price = "Rare", Rarity = "Fire", Color = Color3.fromRGB(255, 120, 30)},
-    ["70549049033717"] = {DisplayName = "Sinister Egg", Icon = "😈", ImageId = "101746101345717", Price = "Secret", Rarity = "Dark", Color = Color3.fromRGB(220, 40, 60)},
-    ["131792796847596"] = {DisplayName = "Galaxy Egg", Icon = "🌌", ImageId = "101746101345717", Price = "1.5B", Rarity = "Divine", Color = Color3.fromRGB(180, 100, 255)},
-    ["95155753812330"] = {DisplayName = "Soul Egg", Icon = "👻", ImageId = "", Price = "Ethereal", Rarity = "Ghost", Color = Color3.fromRGB(120, 220, 255)},
-    ["109698896973127"] = {DisplayName = "Skull Egg", Icon = "💀", ImageId = "101746101345717", Price = "Dark", Rarity = "Bone", Color = Color3.fromRGB(180, 180, 180)},
-    ["6932488731"] = {DisplayName = "Blackhole Egg", Icon = "🕳️", ImageId = "101746101345717", Price = "100B", Rarity = "Ethereal", Color = Color3.fromRGB(80, 80, 80)},
+    ["70549049033717"] = {DisplayName = "Sinister Egg", Icon = "😈", ImageId = "100010318153363", Price = "Secret", Rarity = "Dark", Color = Color3.fromRGB(220, 40, 60)},
+    ["131792796847596"] = {DisplayName = "Galaxy Egg", Icon = "🌌", ImageId = "100174338199842", Price = "1.5B", Rarity = "Divine", Color = Color3.fromRGB(180, 100, 255)},
+    ["95155753812330"] = {DisplayName = "Soul Egg", Icon = "👻", ImageId = "113516441036388", Price = "Ethereal", Rarity = "Ghost", Color = Color3.fromRGB(120, 220, 255)},
+    ["109698896973127"] = {DisplayName = "Skull Egg", Icon = "💀", ImageId = "133763014063788", Price = "Dark", Rarity = "Bone", Color = Color3.fromRGB(180, 180, 180)},
+    ["6932488731"] = {DisplayName = "Blackhole Egg", Icon = "🕳️", ImageId = "", Price = "100B", Rarity = "Ethereal", Color = Color3.fromRGB(80, 80, 80)},
     ["99624357990460"] = {DisplayName = "Cherub Egg", Icon = "😇", ImageId = "", Price = "1T", Rarity = "Ethereal", Color = Color3.fromRGB(255, 255, 100)}
 }
 
-local selectedTargetEggs = {}
-local activeEggs = {}
-local availableEggs = {}
+local selectedTargetEggs = {} 
+local activeEggs = {}         
 local currentEspMode = "Straight"
-local espModes = {"Straight", "Arrow"}
+local espModes = {"Straight", "Arrow"} 
 local currentEspIndex = 1
 local autoPickupEnabled = false
 local notifiedEggs = {}
 
--- FLY PICKUP STATE
-local flyPickupEnabled = false
-local flyTask = nil
-local FLY_SPEED = 70
-local PICKUP_RANGE = 6
-local RANCH_RANGE = 10
+local excludePaths = {"Plots", "Plot", "Ranch", "Backpack", "Base", "Farm", "House"} 
 
-local excludePaths = {"Plots", "Plot", "Ranch", "Backpack", "Base", "Farm", "House"}
-
--- ===================== GUI =====================
+-- CREATE MODERN AESTHETIC GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "EggRadarUI"
 screenGui.ResetOnSpawn = false
@@ -55,7 +47,7 @@ if not success then
     screenGui.Parent = player:WaitForChild("PlayerGui")
 end
 
--- NOTIFICATION
+-- TOP CENTER RARE NOTIFICATION
 local notifFrame = Instance.new("Frame")
 notifFrame.Size = UDim2.new(0, 320, 0, 70)
 notifFrame.Position = UDim2.new(0.5, -160, 0, -100)
@@ -106,12 +98,12 @@ local notifThread = nil
 local function showTopNotif(name)
     local data = nil
     for _, d in pairs(trackedEggs) do
-        if d.DisplayName == name then data = d; break end
+        if d.DisplayName == name then data = d break end
     end
     if not data then return end
 
     if notifThread then
-        pcall(function() task.cancel(notifThread) end)
+        task.cancel(notifThread)
     end
 
     notifIcon.Text = data.Icon
@@ -122,7 +114,7 @@ local function showTopNotif(name)
 
     notifFrame.Position = UDim2.new(0.5, -160, 0, -100)
     TweenService:Create(notifFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -160, 0, 20)}):Play()
-
+    
     pcall(function()
         local snd = Instance.new("Sound")
         snd.SoundId = "rbxassetid://4590660214"
@@ -138,7 +130,7 @@ local function showTopNotif(name)
     end)
 end
 
--- MINI ICON
+-- MINIMIZED ICON
 local miniIcon = Instance.new("TextButton")
 miniIcon.Size = UDim2.new(0, 50, 0, 50)
 miniIcon.Position = UDim2.new(0.03, 0, 0.3, 0)
@@ -160,7 +152,7 @@ miniStroke.Parent = miniIcon
 
 -- MAIN WINDOW
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 290, 0, 425)
+mainFrame.Size = UDim2.new(0, 290, 0, 380)
 mainFrame.Position = UDim2.new(0.03, 0, 0.3, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
 mainFrame.BorderSizePixel = 0
@@ -227,7 +219,6 @@ local exitCorner = Instance.new("UICorner")
 exitCorner.CornerRadius = UDim.new(0, 6)
 exitCorner.Parent = exitBtn
 
--- ROW 1
 local controlBar = Instance.new("Frame")
 controlBar.Size = UDim2.new(1, -16, 0, 35)
 controlBar.Position = UDim2.new(0, 8, 0, 50)
@@ -267,46 +258,9 @@ local pickupCorner = Instance.new("UICorner")
 pickupCorner.CornerRadius = UDim.new(0, 6)
 pickupCorner.Parent = pickupBtn
 
--- ROW 2: FLY PICKUP
-local flyBar = Instance.new("Frame")
-flyBar.Size = UDim2.new(1, -16, 0, 35)
-flyBar.Position = UDim2.new(0, 8, 0, 88)
-flyBar.BackgroundColor3 = Color3.fromRGB(30, 33, 40)
-flyBar.BorderSizePixel = 0
-flyBar.Parent = mainFrame
-
-local flyCorner = Instance.new("UICorner")
-flyCorner.CornerRadius = UDim.new(0, 8)
-flyCorner.Parent = flyBar
-
-local flyBtn = Instance.new("TextButton")
-flyBtn.Size = UDim2.new(0.60, 0, 0, 25)
-flyBtn.Position = UDim2.new(0.04, 0, 0.5, -12.5)
-flyBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
-flyBtn.Text = "🕊️ Fly-Pickup: OFF"
-flyBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
-flyBtn.Font = Enum.Font.GothamBold
-flyBtn.TextSize = 11
-flyBtn.Parent = flyBar
-
-local flyBtnCorner = Instance.new("UICorner")
-flyBtnCorner.CornerRadius = UDim.new(0, 6)
-flyBtnCorner.Parent = flyBtn
-
-local flyStatus = Instance.new("TextLabel")
-flyStatus.Size = UDim2.new(0.32, 0, 0, 25)
-flyStatus.Position = UDim2.new(0.66, 0, 0.5, -12.5)
-flyStatus.BackgroundTransparency = 1
-flyStatus.Text = "IDLE"
-flyStatus.TextColor3 = Color3.fromRGB(150, 155, 170)
-flyStatus.Font = Enum.Font.GothamBold
-flyStatus.TextSize = 10
-flyStatus.TextXAlignment = Enum.TextXAlignment.Center
-flyStatus.Parent = flyBar
-
 local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1, -16, 1, -138)
-scrollFrame.Position = UDim2.new(0, 8, 0, 130)
+scrollFrame.Size = UDim2.new(1, -16, 1, -95)
+scrollFrame.Position = UDim2.new(0, 8, 0, 92)
 scrollFrame.BackgroundTransparency = 1
 scrollFrame.ScrollBarThickness = 3
 scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 105, 120)
@@ -329,11 +283,11 @@ for meshId, data in pairs(trackedEggs) do
     card.AutoButtonColor = false
     card.Text = ""
     card.Parent = scrollFrame
-
+    
     local cardCorner = Instance.new("UICorner")
     cardCorner.CornerRadius = UDim.new(0, 8)
     cardCorner.Parent = card
-
+    
     local cardStroke = Instance.new("UIStroke")
     cardStroke.Color = Color3.fromRGB(60, 65, 80)
     cardStroke.Thickness = 1
@@ -345,7 +299,7 @@ for meshId, data in pairs(trackedEggs) do
     accent.BackgroundColor3 = data.Color
     accent.BorderSizePixel = 0
     accent.Parent = card
-
+    
     local accentCorner = Instance.new("UICorner")
     accentCorner.CornerRadius = UDim.new(0, 4)
     accentCorner.Parent = accent
@@ -364,7 +318,7 @@ for meshId, data in pairs(trackedEggs) do
     iconLabel.Size = UDim2.new(0, 30, 0, 30)
     iconLabel.Position = UDim2.new(0, 16, 0.5, -15)
     iconLabel.Parent = card
-
+    
     local iconCorner = Instance.new("UICorner")
     iconCorner.CornerRadius = UDim.new(0, 6)
     iconCorner.Parent = iconLabel
@@ -421,8 +375,8 @@ for meshId, data in pairs(trackedEggs) do
             cardStroke.Thickness = 1
         else
             selectedTargetEggs[data.DisplayName] = true
-            card.BackgroundColor3 = Color3.fromRGB(50, 80, 160)
-            cardStroke.Color = Color3.fromRGB(0, 255, 120)
+            card.BackgroundColor3 = Color3.fromRGB(50, 80, 160) 
+            cardStroke.Color = Color3.fromRGB(0, 255, 120)     
             cardStroke.Thickness = 2.5
         end
     end)
@@ -442,13 +396,6 @@ pickupBtn.MouseButton1Click:Connect(function()
     if autoPickupEnabled then
         pickupBtn.Text = "🤖 Pickup: ON"
         pickupBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 80)
-        if flyPickupEnabled then
-            flyPickupEnabled = false
-            flyBtn.Text = "🕊️ Fly-Pickup: OFF"
-            flyBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
-            flyStatus.Text = "IDLE"
-            flyStatus.TextColor3 = Color3.fromRGB(150, 155, 170)
-        end
     else
         pickupBtn.Text = "🤖 Pickup: OFF"
         pickupBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
@@ -500,7 +447,7 @@ miniIcon.MouseButton1Click:Connect(function()
     mainFrame.Visible = true
 end)
 
--- ===================== TRACKING =====================
+-- ESP & TRACKING LOGIC (MULTI-EGG)
 local function extractId(str)
     if not str or str == "" then return nil end
     return string.match(str, "%d+")
@@ -517,7 +464,7 @@ end
 
 local function checkEggByMesh(obj)
     if not (obj:IsA("BasePart") or obj:IsA("Model")) then return nil end
-
+    
     local path = obj:GetFullName()
     for _, exclude in ipairs(excludePaths) do
         if string.find(path, exclude) then return nil end
@@ -525,7 +472,7 @@ local function checkEggByMesh(obj)
     if player.Character and obj:IsDescendantOf(player.Character) then
         return nil
     end
-
+    
     if obj:IsA("MeshPart") then
         local meshId = extractId(obj.MeshId)
         if meshId and trackedEggs[meshId] then return trackedEggs[meshId].DisplayName end
@@ -546,8 +493,6 @@ local function clearESPForEgg(eggInst)
         if tag then tag:Destroy() end
         local att = eggInst:FindFirstChild("RadarAtt")
         if att then att:Destroy() end
-        local beam = eggInst:FindFirstChild("RadarBeam")
-        if beam then beam:Destroy() end
     end
 end
 
@@ -557,7 +502,7 @@ local function applyESPToEgg(eggInst, displayName)
 
     local espColor = Color3.new(1, 1, 1)
     for _, data in pairs(trackedEggs) do
-        if data.DisplayName == displayName then espColor = data.Color; break end
+        if data.DisplayName == displayName then espColor = data.Color break end
     end
 
     local highlight = Instance.new("Highlight")
@@ -603,235 +548,11 @@ local function applyESPToEgg(eggInst, displayName)
     nameLabel.Parent = billboard
 end
 
--- ===================== FLY PICKUP =====================
-local function getRanchPosition()
-    local candidateNames = {"Plots", "Plot", "Ranch", "Ranches", "Base", "Farm", "House"}
-    local pName = player.Name:lower()
-    local dName = player.DisplayName:lower()
-
-    for _, name in ipairs(candidateNames) do
-        local folder = Workspace:FindFirstChild(name)
-        if folder then
-            for _, plot in ipairs(folder:GetChildren()) do
-                local n = plot.Name:lower()
-                if string.find(n, pName, 1, true) or string.find(n, dName, 1, true) then
-                    if plot:IsA("Model") then
-                        local base = plot:FindFirstChildWhichIsA("BasePart", true)
-                        if base then return base.Position end
-                        local ok, pivot = pcall(function() return plot:GetPivot().Position end)
-                        if ok and pivot then return pivot end
-                    elseif plot:IsA("BasePart") then
-                        return plot.Position
-                    end
-                end
-            end
-        end
-    end
-    return nil
-end
-
-local function getFlyTarget(hrp)
-    local hrpPos = hrp.Position
-    local best, bestD = nil, math.huge
-
-    for eggInst, _ in pairs(activeEggs) do
-        local adornee = getAdornee(eggInst)
-        if adornee and adornee.Parent then
-            local d = (adornee.Position - hrpPos).Magnitude
-            if d < bestD then bestD = d; best = eggInst end
-        end
-    end
-    if best then return best end
-
-    for _, eggInst in pairs(availableEggs) do
-        local adornee = getAdornee(eggInst)
-        if adornee and adornee.Parent then
-            local d = (adornee.Position - hrpPos).Magnitude
-            if d < bestD then bestD = d; best = eggInst end
-        end
-    end
-    return best
-end
-
-local function flyStep(hrp, targetPos, dt)
-    local dir = targetPos - hrp.Position
-    local dist = dir.Magnitude
-    if dist < 0.05 then return dist end
-    local step = math.min(FLY_SPEED * dt, dist)
-    hrp.CFrame = CFrame.new(hrp.Position + dir.Unit * step)
-    return dist
-end
-
-local function attemptPickup(eggInst)
-    local adornee = getAdornee(eggInst)
-    if not adornee then return end
-
-    local char = player.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if hrp then
-        hrp.CFrame = CFrame.new(adornee.Position + Vector3.new(0, 1.5, 0))
-    end
-
-    local function firePrompts(container)
-        for _, d in ipairs(container:GetDescendants()) do
-            if d:IsA("ProximityPrompt") then
-                pcall(function()
-                    d.HoldDuration = 0
-                    d.MaxActivationDistance = 100
-                    d.RequiresLineOfSight = false
-                    d:InputHoldBegin()
-                    task.wait(0.05)
-                    d:InputHoldEnd()
-                end)
-            elseif d:IsA("ClickDetector") then
-                pcall(function()
-                    if fireclickdetector then
-                        fireclickdetector(d)
-                    end
-                end)
-            end
-        end
-    end
-
-    firePrompts(eggInst)
-    if adornee ~= eggInst then
-        firePrompts(adornee)
-    end
-end
-
-local function runFlyCycle()
-    local char = player.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-
-    if not (hrp and hum and hum.Health > 0) then
-        flyStatus.Text = "NO CHAR"
-        flyStatus.TextColor3 = Color3.fromRGB(240, 70, 70)
-        task.wait(0.3)
-        return
-    end
-
-    local target = getFlyTarget(hrp)
-    if not target then
-        flyStatus.Text = "NO EGG"
-        flyStatus.TextColor3 = Color3.fromRGB(150, 155, 170)
-        task.wait(0.5)
-        return
-    end
-
-    local adornee = getAdornee(target)
-    if not adornee then
-        task.wait(0.2)
-        return
-    end
-
-    flyStatus.Text = "FLYING"
-    flyStatus.TextColor3 = Color3.fromRGB(0, 200, 255)
-
-    local lastHeartbeat = tick()
-    local flyTimeout = tick() + 10
-    local reached = false
-
-    while flyPickupEnabled and target.Parent and tick() < flyTimeout do
-        local now = tick()
-        local dt = now - lastHeartbeat
-        lastHeartbeat = now
-
-        adornee = getAdornee(target)
-        if not adornee then break end
-
-        local d = flyStep(hrp, adornee.Position, dt)
-        if d <= PICKUP_RANGE then
-            reached = true
-            break
-        end
-        task.wait(0.03)
-    end
-
-    if reached and flyPickupEnabled then
-        flyStatus.Text = "PICKING"
-        flyStatus.TextColor3 = Color3.fromRGB(255, 200, 50)
-        pcall(attemptPickup, target)
-        task.wait(0.6)
-    end
-
-    if flyPickupEnabled then
-        local ranchPos = getRanchPosition()
-        if ranchPos then
-            flyStatus.Text = "TO RANCH"
-            flyStatus.TextColor3 = Color3.fromRGB(0, 255, 120)
-
-            local lastHb = tick()
-            local ranchTimeout = tick() + 12
-            while flyPickupEnabled and tick() < ranchTimeout do
-                local now = tick()
-                local dt = now - lastHb
-                lastHb = now
-
-                local d = flyStep(hrp, ranchPos, dt)
-                if d <= RANCH_RANGE then break end
-                task.wait(0.03)
-            end
-            task.wait(0.3)
-        else
-            flyStatus.Text = "NO RANCH"
-            flyStatus.TextColor3 = Color3.fromRGB(240, 70, 70)
-            task.wait(0.6)
-        end
-    end
-end
-
-local function startFlyPickup()
-    if flyTask then return end
-    flyTask = task.spawn(function()
-        while flyPickupEnabled do
-            local ok, err = pcall(runFlyCycle)
-            if not ok then
-                warn("[FlyPickup] " .. tostring(err))
-                task.wait(0.5)
-            end
-        end
-        flyStatus.Text = "IDLE"
-        flyStatus.TextColor3 = Color3.fromRGB(150, 155, 170)
-        flyTask = nil
-    end)
-end
-
-flyBtn.MouseButton1Click:Connect(function()
-    flyPickupEnabled = not flyPickupEnabled
-    if flyPickupEnabled then
-        flyBtn.Text = "🕊️ Fly-Pickup: ON"
-        flyBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 80)
-        flyStatus.Text = "STARTING"
-        flyStatus.TextColor3 = Color3.fromRGB(0, 200, 255)
-
-        if autoPickupEnabled then
-            autoPickupEnabled = false
-            pickupBtn.Text = "🤖 Pickup: OFF"
-            pickupBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
-        end
-
-        startFlyPickup()
-    else
-        flyBtn.Text = "🕊️ Fly-Pickup: OFF"
-        flyBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
-        flyStatus.Text = "IDLE"
-        flyStatus.TextColor3 = Color3.fromRGB(150, 155, 170)
-
-        local char = player.Character
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        if hum then
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            if hrp then hum:MoveTo(hrp.Position) end
-        end
-    end
-end)
-
--- ===================== TRACKER =====================
+-- BACKGROUND TRACKER & RENDER LOOP
 task.spawn(function()
     while task.wait(0.5) do
-        local foundEggsMap = {}
-
+        local foundEggsMap = {} 
+        
         for _, obj in ipairs(Workspace:GetDescendants()) do
             local displayName = checkEggByMesh(obj)
             if displayName then
@@ -839,14 +560,12 @@ task.spawn(function()
             end
         end
 
-        availableEggs = foundEggsMap
-
         for displayName, ui in pairs(eggUI) do
             if foundEggsMap[displayName] then
                 ui.Status.Text = "AVAILABLE"
                 ui.Status.TextColor3 = Color3.fromRGB(60, 230, 120)
                 ui.Dot.BackgroundColor3 = Color3.fromRGB(60, 230, 120)
-
+                
                 if (displayName == "Cherub Egg" or displayName == "Blackhole Egg") and not notifiedEggs[displayName] then
                     showTopNotif(displayName)
                     notifiedEggs[displayName] = true
@@ -855,7 +574,7 @@ task.spawn(function()
                 ui.Status.Text = "UNAVAILABLE"
                 ui.Status.TextColor3 = Color3.fromRGB(140, 145, 160)
                 ui.Dot.BackgroundColor3 = Color3.fromRGB(240, 70, 70)
-
+                
                 if notifiedEggs[displayName] then
                     notifiedEggs[displayName] = false
                 end
@@ -879,12 +598,11 @@ task.spawn(function()
     end
 end)
 
--- ===================== RENDER =====================
 RunService.RenderStepped:Connect(function()
     local char = player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChildOfClass("Humanoid")
-
+    
     if hrp then
         if not hrp:FindFirstChild("PlayerRadarAtt") then
             local att = Instance.new("Attachment")
@@ -893,6 +611,7 @@ RunService.RenderStepped:Connect(function()
         end
         local playerAtt = hrp:FindFirstChild("PlayerRadarAtt")
 
+        -- REVISED ARROW ESP UI SETUP
         local arrowGui = hrp:FindFirstChild("NavArrowGui")
         if not arrowGui then
             arrowGui = Instance.new("BillboardGui")
@@ -910,7 +629,7 @@ RunService.RenderStepped:Connect(function()
             baseCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
             baseCircle.BorderSizePixel = 0
             baseCircle.Parent = arrowGui
-
+            
             local baseCorner = Instance.new("UICorner")
             baseCorner.CornerRadius = UDim.new(1, 0)
             baseCorner.Parent = baseCircle
@@ -920,7 +639,7 @@ RunService.RenderStepped:Connect(function()
             arrowImg.Size = UDim2.new(0, 60, 0, 60)
             arrowImg.Position = UDim2.new(0.5, -30, 0, -15)
             arrowImg.BackgroundTransparency = 1
-            arrowImg.Image = "rbxassetid://107233777"
+            arrowImg.Image = "rbxassetid://107233777" 
             arrowImg.ImageColor3 = Color3.fromRGB(0, 255, 120)
             arrowImg.Parent = arrowGui
 
@@ -938,6 +657,7 @@ RunService.RenderStepped:Connect(function()
             distLabel.Parent = arrowGui
         end
 
+        local closestEggInst = nil
         local closestDist = math.huge
         local closestAdornee = nil
 
@@ -946,8 +666,10 @@ RunService.RenderStepped:Connect(function()
                 local adornee = getAdornee(eggInst)
                 if adornee then
                     local dist = (adornee.Position - hrp.Position).Magnitude
+                    
                     if dist < closestDist then
                         closestDist = dist
+                        closestEggInst = eggInst
                         closestAdornee = adornee
                     end
 
@@ -976,25 +698,25 @@ RunService.RenderStepped:Connect(function()
         end
 
         if arrowGui then arrowGui.Enabled = false end
-
+        
         if currentEspMode == "Arrow" and closestAdornee then
             arrowGui.Enabled = true
-
+            
             local lookVector = hrp.CFrame.LookVector
             local targetDir = (closestAdornee.Position - hrp.Position).Unit
             local look2D = Vector2.new(lookVector.X, lookVector.Z).Unit
             local target2D = Vector2.new(targetDir.X, targetDir.Z).Unit
-
+            
             local angle = math.atan2(target2D.Y, target2D.X) - math.atan2(look2D.Y, look2D.X)
             local degrees = math.deg(angle)
-
+            
             local arrowImg = arrowGui:FindFirstChild("ArrowImage")
             local distText = arrowGui:FindFirstChild("DistText")
             local baseCircle = arrowGui:FindFirstChild("BaseCircle")
-
+            
             if arrowImg then
                 arrowImg.Rotation = -degrees
-
+                
                 local dotProduct = look2D:Dot(target2D)
                 if dotProduct > 0.85 then
                     arrowImg.ImageColor3 = Color3.fromRGB(0, 255, 120)
@@ -1007,34 +729,30 @@ RunService.RenderStepped:Connect(function()
                     if baseCircle then baseCircle.BackgroundColor3 = Color3.fromRGB(255, 60, 60) end
                 end
             end
-
+            
             if distText then
                 distText.Text = math.floor(closestDist) .. "m"
             end
         end
 
-        if not flyPickupEnabled then
-            if autoPickupEnabled and hum and hum.Health > 0 and closestAdornee then
-                if closestDist > 5 then
-                    hum:MoveTo(closestAdornee.Position)
-                else
-                    hum:MoveTo(hrp.Position)
-                end
-            elseif autoPickupEnabled and hum and hum.Health > 0 and not closestAdornee then
+        if autoPickupEnabled and hum and hum.Health > 0 and closestAdornee then
+            if closestDist > 5 then
+                hum:MoveTo(closestAdornee.Position)
+            else
                 hum:MoveTo(hrp.Position)
             end
+        elseif autoPickupEnabled and hum and hum.Health > 0 and not closestAdornee then
+            hum:MoveTo(hrp.Position)
         end
     end
 end)
 
 exitBtn.MouseButton1Click:Connect(function()
-    flyPickupEnabled = false
-
     for eggInst, _ in pairs(activeEggs) do
         clearESPForEgg(eggInst)
     end
     activeEggs = {}
-
+    
     local char = player.Character
     if char then
         local hrp = char:FindFirstChild("HumanoidRootPart")
