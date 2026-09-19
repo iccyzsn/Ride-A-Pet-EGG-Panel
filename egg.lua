@@ -375,21 +375,15 @@ for meshId, data in pairs(trackedEggs) do
             card.BackgroundColor3 = Color3.fromRGB(28, 31, 38)
             cardStroke.Color = Color3.fromRGB(60, 65, 80)
             cardStroke.Thickness = 1
-            -- Reset Info Label
-            infoLabel.Text = data.Rarity .. " • " .. data.Price
-            infoLabel.TextColor3 = Color3.fromRGB(140, 145, 160)
         else
             selectedTargetEggs[data.DisplayName] = true
             card.BackgroundColor3 = Color3.fromRGB(50, 80, 160) 
             cardStroke.Color = Color3.fromRGB(0, 255, 120)     
             cardStroke.Thickness = 2
-            -- Update Info Label to show Value immediately
-            infoLabel.Text = "VALUE: " .. data.Price
-            infoLabel.TextColor3 = Color3.fromRGB(0, 255, 120)
         end
     end)
 
-    eggUI[data.DisplayName] = {Card = card, Status = statusLabel, Dot = statusDot, Stroke = cardStroke, Info = infoLabel}
+    eggUI[data.DisplayName] = {Card = card, Status = statusLabel, Dot = statusDot, Stroke = cardStroke}
 end
 
 modeBtn.MouseButton1Click:Connect(function()
@@ -493,28 +487,6 @@ local function checkEggByMesh(obj)
     return nil
 end
 
--- Function to dynamically fetch the "Kg" or weight of the egg if it exists in the game world
-local function getEggKg(eggInst)
-    if not eggInst then return nil end
-    local attrs = {"Kg", "Weight", "Mass", "Size"}
-    for _, attr in ipairs(attrs) do
-        local val = eggInst:GetAttribute(attr)
-        if val ~= nil then 
-            return tostring(val) .. "kg"
-        end
-    end
-    for _, child in ipairs(eggInst:GetDescendants()) do
-        if child:IsA("ValueBase") then
-            for _, attr in ipairs(attrs) do
-                if child.Name == attr then
-                    return tostring(child.Value) .. "kg"
-                end
-            end
-        end
-    end
-    return nil
-end
-
 local function clearESPForEgg(eggInst)
     if eggInst and eggInst.Parent then
         local hl = eggInst:FindFirstChild("RadarHighlight")
@@ -608,28 +580,6 @@ task.spawn(function()
                 if notifiedEggs[displayName] then
                     notifiedEggs[displayName] = false
                 end
-            end
-            
-            -- Update Kg/Value on the panel if the egg is highlighted
-            if selectedTargetEggs[displayName] then
-                local eggInst = foundEggsMap[displayName]
-                if eggInst then
-                    local kg = getEggKg(eggInst)
-                    if kg then
-                        ui.Info.Text = "KG: " .. kg
-                    else
-                        ui.Info.Text = "VALUE: " .. trackedEggs[displayName].Price
-                    end
-                    ui.Info.TextColor3 = Color3.fromRGB(0, 255, 120)
-                else
-                    -- If not spawned, show static value
-                    ui.Info.Text = "VALUE: " .. trackedEggs[displayName].Price
-                    ui.Info.TextColor3 = Color3.fromRGB(0, 255, 120)
-                end
-            else
-                -- Revert text if unselected
-                ui.Info.Text = trackedEggs[displayName].Rarity .. " • " .. trackedEggs[displayName].Price
-                ui.Info.TextColor3 = Color3.fromRGB(140, 145, 160)
             end
         end
 
