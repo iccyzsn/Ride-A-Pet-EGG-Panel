@@ -1,20 +1,19 @@
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
-local StarterGui = game:GetService("StarterGui")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 
--- EGG DATABASE (ADDED YOUR IMAGE IDs)
+-- EGG DATABASE (ImageId removed, emoji only)
 local trackedEggs = {
-    ["152975769"] = {DisplayName = "Flaming Egg", Icon = "🔥", ImageId = "", Price = "Rare", Rarity = "Fire", Color = Color3.fromRGB(255, 120, 30)},
-    ["70549049033717"] = {DisplayName = "Sinister Egg", Icon = "😈", ImageId = "101746101345717", Price = "Secret", Rarity = "Dark", Color = Color3.fromRGB(220, 40, 60)},
-    ["131792796847596"] = {DisplayName = "Galaxy Egg", Icon = "🌌", ImageId = "101746101345717", Price = "1.5B", Rarity = "Divine", Color = Color3.fromRGB(180, 100, 255)},
-    ["95155753812330"] = {DisplayName = "Soul Egg", Icon = "👻", ImageId = "", Price = "Ethereal", Rarity = "Ghost", Color = Color3.fromRGB(120, 220, 255)},
-    ["109698896973127"] = {DisplayName = "Skull Egg", Icon = "💀", ImageId = "101746101345717", Price = "Dark", Rarity = "Bone", Color = Color3.fromRGB(180, 180, 180)},
-    ["6932488731"] = {DisplayName = "Blackhole Egg", Icon = "🕳️", ImageId = "101746101345717", Price = "100B", Rarity = "Ethereal", Color = Color3.fromRGB(80, 80, 80)},
-    ["99624357990460"] = {DisplayName = "Cherub Egg", Icon = "😇", ImageId = "", Price = "1T", Rarity = "Ethereal", Color = Color3.fromRGB(255, 255, 100)}
+    ["152975769"] = {DisplayName = "Flaming Egg", Icon = "🔥", Price = "Rare", Rarity = "Fire", Color = Color3.fromRGB(255, 120, 30)},
+    ["70549049033717"] = {DisplayName = "Sinister Egg", Icon = "😈", Price = "Secret", Rarity = "Dark", Color = Color3.fromRGB(220, 40, 60)},
+    ["131792796847596"] = {DisplayName = "Galaxy Egg", Icon = "🌌", Price = "1.5B", Rarity = "Divine", Color = Color3.fromRGB(180, 100, 255)},
+    ["95155753812330"] = {DisplayName = "Soul Egg", Icon = "👻", Price = "Ethereal", Rarity = "Ghost", Color = Color3.fromRGB(120, 220, 255)},
+    ["109698896973127"] = {DisplayName = "Skull Egg", Icon = "💀", Price = "Dark", Rarity = "Bone", Color = Color3.fromRGB(180, 180, 180)},
+    ["6932488731"] = {DisplayName = "Blackhole Egg", Icon = "🕳️", Price = "100B", Rarity = "Ethereal", Color = Color3.fromRGB(80, 80, 80)},
+    ["99624357990460"] = {DisplayName = "Cherub Egg", Icon = "😇", Price = "1T", Rarity = "Ethereal", Color = Color3.fromRGB(255, 255, 100)}
 }
 
 local selectedTargetEggs = {} 
@@ -25,9 +24,14 @@ local currentEspIndex = 1
 local autoPickupEnabled = false
 local notifiedEggs = {}
 
+local teleportToEggEnabled = false
+local teleportToPlotEnabled = false
+
 local excludePaths = {"Plots", "Plot", "Ranch", "Backpack", "Base", "Farm", "House"} 
 
--- CREATE MODERN AESTHETIC GUI
+-- =========================================================
+-- COMPACT GUI
+-- =========================================================
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "EggRadarUI"
 screenGui.ResetOnSpawn = false
@@ -47,50 +51,50 @@ if not success then
     screenGui.Parent = player:WaitForChild("PlayerGui")
 end
 
--- TOP CENTER RARE NOTIFICATION
+-- TOP CENTER RARE NOTIFICATION (compact)
 local notifFrame = Instance.new("Frame")
-notifFrame.Size = UDim2.new(0, 320, 0, 70)
-notifFrame.Position = UDim2.new(0.5, -160, 0, -100)
+notifFrame.Size = UDim2.new(0, 240, 0, 52)
+notifFrame.Position = UDim2.new(0.5, -120, 0, -80)
 notifFrame.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
 notifFrame.BorderSizePixel = 0
 notifFrame.Parent = screenGui
 
 local notifCorner = Instance.new("UICorner")
-notifCorner.CornerRadius = UDim.new(0, 10)
+notifCorner.CornerRadius = UDim.new(0, 8)
 notifCorner.Parent = notifFrame
 
 local notifStroke = Instance.new("UIStroke")
 notifStroke.Color = Color3.fromRGB(255, 255, 255)
-notifStroke.Thickness = 2
+notifStroke.Thickness = 1.5
 notifStroke.Transparency = 0.5
 notifStroke.Parent = notifFrame
 
 local notifIcon = Instance.new("TextLabel")
-notifIcon.Size = UDim2.new(0, 50, 1, 0)
+notifIcon.Size = UDim2.new(0, 40, 1, 0)
 notifIcon.BackgroundTransparency = 1
 notifIcon.Text = "🌟"
-notifIcon.TextSize = 32
+notifIcon.TextSize = 24
 notifIcon.Parent = notifFrame
 
 local notifTitle = Instance.new("TextLabel")
-notifTitle.Size = UDim2.new(1, -60, 0, 25)
-notifTitle.Position = UDim2.new(0, 55, 0, 12)
+notifTitle.Size = UDim2.new(1, -48, 0, 18)
+notifTitle.Position = UDim2.new(0, 44, 0, 9)
 notifTitle.BackgroundTransparency = 1
 notifTitle.Text = "RARE EGG SPAWNED!"
 notifTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 notifTitle.Font = Enum.Font.GothamBlack
-notifTitle.TextSize = 16
+notifTitle.TextSize = 12
 notifTitle.TextXAlignment = Enum.TextXAlignment.Left
 notifTitle.Parent = notifFrame
 
 local notifSub = Instance.new("TextLabel")
-notifSub.Size = UDim2.new(1, -60, 0, 20)
-notifSub.Position = UDim2.new(0, 55, 0, 38)
+notifSub.Size = UDim2.new(1, -48, 0, 15)
+notifSub.Position = UDim2.new(0, 44, 0, 28)
 notifSub.BackgroundTransparency = 1
 notifSub.Text = "Cherub Egg is now available!"
 notifSub.TextColor3 = Color3.fromRGB(200, 210, 230)
 notifSub.Font = Enum.Font.GothamBold
-notifSub.TextSize = 12
+notifSub.TextSize = 9
 notifSub.TextXAlignment = Enum.TextXAlignment.Left
 notifSub.Parent = notifFrame
 
@@ -112,8 +116,8 @@ local function showTopNotif(name)
     notifSub.Text = "Look up! It's currently available in the world."
     notifStroke.Color = data.Color
 
-    notifFrame.Position = UDim2.new(0.5, -160, 0, -100)
-    TweenService:Create(notifFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -160, 0, 20)}):Play()
+    notifFrame.Position = UDim2.new(0.5, -120, 0, -80)
+    TweenService:Create(notifFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -120, 0, 15)}):Play()
     
     pcall(function()
         local snd = Instance.new("Sound")
@@ -125,18 +129,18 @@ local function showTopNotif(name)
     end)
 
     notifThread = task.delay(5, function()
-        TweenService:Create(notifFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {Position = UDim2.new(0.5, -160, 0, -100)}):Play()
+        TweenService:Create(notifFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {Position = UDim2.new(0.5, -120, 0, -80)}):Play()
         notifThread = nil
     end)
 end
 
 -- MINIMIZED ICON
 local miniIcon = Instance.new("TextButton")
-miniIcon.Size = UDim2.new(0, 50, 0, 50)
+miniIcon.Size = UDim2.new(0, 38, 0, 38)
 miniIcon.Position = UDim2.new(0.03, 0, 0.3, 0)
 miniIcon.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
 miniIcon.Text = "🥚"
-miniIcon.TextSize = 30
+miniIcon.TextSize = 22
 miniIcon.Visible = false
 miniIcon.Parent = screenGui
 miniIcon.Active = true
@@ -147,12 +151,12 @@ miniCorner.Parent = miniIcon
 
 local miniStroke = Instance.new("UIStroke")
 miniStroke.Color = Color3.fromRGB(50, 55, 70)
-miniStroke.Thickness = 2
+miniStroke.Thickness = 1.5
 miniStroke.Parent = miniIcon
 
--- MAIN WINDOW
+-- MAIN WINDOW (compact: 220 x 290)
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 290, 0, 380)
+mainFrame.Size = UDim2.new(0, 220, 0, 290)
 mainFrame.Position = UDim2.new(0.03, 0, 0.3, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
 mainFrame.BorderSizePixel = 0
@@ -161,7 +165,7 @@ mainFrame.Active = true
 mainFrame.Parent = screenGui
 
 local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0, 10)
+mainCorner.CornerRadius = UDim.new(0, 8)
 mainCorner.Parent = mainFrame
 
 local mainStroke = Instance.new("UIStroke")
@@ -169,100 +173,133 @@ mainStroke.Color = Color3.fromRGB(50, 55, 70)
 mainStroke.Thickness = 1
 mainStroke.Parent = mainFrame
 
+-- HEADER (32px)
 local header = Instance.new("Frame")
-header.Size = UDim2.new(1, 0, 0, 45)
+header.Size = UDim2.new(1, 0, 0, 32)
 header.BackgroundColor3 = Color3.fromRGB(25, 28, 35)
 header.BorderSizePixel = 0
 header.Parent = mainFrame
 header.Active = true
 
 local headerCorner = Instance.new("UICorner")
-headerCorner.CornerRadius = UDim.new(0, 10)
+headerCorner.CornerRadius = UDim.new(0, 8)
 headerCorner.Parent = header
 
 local titleText = Instance.new("TextLabel")
-titleText.Size = UDim2.new(1, -100, 1, 0)
-titleText.Position = UDim2.new(0, 12, 0, 0)
+titleText.Size = UDim2.new(1, -80, 1, 0)
+titleText.Position = UDim2.new(0, 10, 0, 0)
 titleText.BackgroundTransparency = 1
 titleText.Text = "🥚 PET RADAR"
 titleText.TextColor3 = Color3.fromRGB(245, 245, 250)
 titleText.Font = Enum.Font.GothamBold
-titleText.TextSize = 13
+titleText.TextSize = 11
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Parent = header
 
 local miniBtn = Instance.new("TextButton")
-miniBtn.Size = UDim2.new(0, 30, 0, 30)
-miniBtn.Position = UDim2.new(1, -68, 0.5, -15)
+miniBtn.Size = UDim2.new(0, 22, 0, 22)
+miniBtn.Position = UDim2.new(1, -50, 0.5, -11)
 miniBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
 miniBtn.Text = "—"
 miniBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 miniBtn.Font = Enum.Font.GothamBold
-miniBtn.TextSize = 16
+miniBtn.TextSize = 13
 miniBtn.Parent = header
 
 local miniBtnCorner = Instance.new("UICorner")
-miniBtnCorner.CornerRadius = UDim.new(0, 6)
+miniBtnCorner.CornerRadius = UDim.new(0, 5)
 miniBtnCorner.Parent = miniBtn
 
 local exitBtn = Instance.new("TextButton")
-exitBtn.Size = UDim2.new(0, 30, 0, 30)
-exitBtn.Position = UDim2.new(1, -34, 0.5, -15)
+exitBtn.Size = UDim2.new(0, 22, 0, 22)
+exitBtn.Position = UDim2.new(1, -26, 0.5, -11)
 exitBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 60)
 exitBtn.Text = "✕"
 exitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 exitBtn.Font = Enum.Font.GothamBold
-exitBtn.TextSize = 14
+exitBtn.TextSize = 11
 exitBtn.Parent = header
 
 local exitCorner = Instance.new("UICorner")
-exitCorner.CornerRadius = UDim.new(0, 6)
+exitCorner.CornerRadius = UDim.new(0, 5)
 exitCorner.Parent = exitBtn
 
+-- CONTROL BAR (compact 2 rows)
 local controlBar = Instance.new("Frame")
-controlBar.Size = UDim2.new(1, -16, 0, 35)
-controlBar.Position = UDim2.new(0, 8, 0, 50)
+controlBar.Size = UDim2.new(1, -12, 0, 56)
+controlBar.Position = UDim2.new(0, 6, 0, 38)
 controlBar.BackgroundColor3 = Color3.fromRGB(30, 33, 40)
 controlBar.BorderSizePixel = 0
 controlBar.Parent = mainFrame
 
 local controlCorner = Instance.new("UICorner")
-controlCorner.CornerRadius = UDim.new(0, 8)
+controlCorner.CornerRadius = UDim.new(0, 6)
 controlCorner.Parent = controlBar
 
+-- Row 1
 local modeBtn = Instance.new("TextButton")
-modeBtn.Size = UDim2.new(0.45, 0, 0, 25)
-modeBtn.Position = UDim2.new(0.04, 0, 0.5, -12.5)
+modeBtn.Size = UDim2.new(0.47, 0, 0, 20)
+modeBtn.Position = UDim2.new(0.03, 0, 0, 5)
 modeBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
 modeBtn.Text = "📏 Line"
 modeBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
 modeBtn.Font = Enum.Font.GothamBold
-modeBtn.TextSize = 11
+modeBtn.TextSize = 9
 modeBtn.Parent = controlBar
 
 local modeCorner = Instance.new("UICorner")
-modeCorner.CornerRadius = UDim.new(0, 6)
+modeCorner.CornerRadius = UDim.new(0, 5)
 modeCorner.Parent = modeBtn
 
 local pickupBtn = Instance.new("TextButton")
-pickupBtn.Size = UDim2.new(0.45, 0, 0, 25)
-pickupBtn.Position = UDim2.new(0.51, 0, 0.5, -12.5)
+pickupBtn.Size = UDim2.new(0.47, 0, 0, 20)
+pickupBtn.Position = UDim2.new(0.50, 0, 0, 5)
 pickupBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
 pickupBtn.Text = "🤖 Pickup: OFF"
 pickupBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
 pickupBtn.Font = Enum.Font.GothamBold
-pickupBtn.TextSize = 11
+pickupBtn.TextSize = 9
 pickupBtn.Parent = controlBar
 
 local pickupCorner = Instance.new("UICorner")
-pickupCorner.CornerRadius = UDim.new(0, 6)
+pickupCorner.CornerRadius = UDim.new(0, 5)
 pickupCorner.Parent = pickupBtn
 
+-- Row 2
+local tpEggBtn = Instance.new("TextButton")
+tpEggBtn.Size = UDim2.new(0.47, 0, 0, 20)
+tpEggBtn.Position = UDim2.new(0.03, 0, 0, 30)
+tpEggBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
+tpEggBtn.Text = "⚡ TP Egg: OFF"
+tpEggBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
+tpEggBtn.Font = Enum.Font.GothamBold
+tpEggBtn.TextSize = 9
+tpEggBtn.Parent = controlBar
+
+local tpEggCorner = Instance.new("UICorner")
+tpEggCorner.CornerRadius = UDim.new(0, 5)
+tpEggCorner.Parent = tpEggBtn
+
+local tpPlotBtn = Instance.new("TextButton")
+tpPlotBtn.Size = UDim2.new(0.47, 0, 0, 20)
+tpPlotBtn.Position = UDim2.new(0.50, 0, 0, 30)
+tpPlotBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
+tpPlotBtn.Text = "🏠 TP Plot: OFF"
+tpPlotBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
+tpPlotBtn.Font = Enum.Font.GothamBold
+tpPlotBtn.TextSize = 9
+tpPlotBtn.Parent = controlBar
+
+local tpPlotCorner = Instance.new("UICorner")
+tpPlotCorner.CornerRadius = UDim.new(0, 5)
+tpPlotCorner.Parent = tpPlotBtn
+
+-- SCROLL FRAME
 local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1, -16, 1, -95)
-scrollFrame.Position = UDim2.new(0, 8, 0, 92)
+scrollFrame.Size = UDim2.new(1, -12, 1, -110)
+scrollFrame.Position = UDim2.new(0, 6, 0, 100)
 scrollFrame.BackgroundTransparency = 1
-scrollFrame.ScrollBarThickness = 3
+scrollFrame.ScrollBarThickness = 2
 scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 105, 120)
 scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
@@ -270,14 +307,14 @@ scrollFrame.BorderSizePixel = 0
 scrollFrame.Parent = mainFrame
 
 local uiLayout = Instance.new("UIListLayout")
-uiLayout.Padding = UDim.new(0, 6)
+uiLayout.Padding = UDim.new(0, 4)
 uiLayout.Parent = scrollFrame
 
 local eggUI = {}
 
 for meshId, data in pairs(trackedEggs) do
     local card = Instance.new("TextButton")
-    card.Size = UDim2.new(1, 0, 0, 52)
+    card.Size = UDim2.new(1, 0, 0, 38)
     card.BackgroundColor3 = Color3.fromRGB(28, 31, 38)
     card.BorderSizePixel = 0
     card.AutoButtonColor = false
@@ -285,7 +322,7 @@ for meshId, data in pairs(trackedEggs) do
     card.Parent = scrollFrame
     
     local cardCorner = Instance.new("UICorner")
-    cardCorner.CornerRadius = UDim.new(0, 8)
+    cardCorner.CornerRadius = UDim.new(0, 6)
     cardCorner.Parent = card
     
     local cardStroke = Instance.new("UIStroke")
@@ -294,60 +331,49 @@ for meshId, data in pairs(trackedEggs) do
     cardStroke.Parent = card
 
     local accent = Instance.new("Frame")
-    accent.Size = UDim2.new(0, 4, 1, -12)
-    accent.Position = UDim2.new(0, 6, 0, 6)
+    accent.Size = UDim2.new(0, 3, 1, -8)
+    accent.Position = UDim2.new(0, 4, 0, 4)
     accent.BackgroundColor3 = data.Color
     accent.BorderSizePixel = 0
     accent.Parent = card
     
     local accentCorner = Instance.new("UICorner")
-    accentCorner.CornerRadius = UDim.new(0, 4)
+    accentCorner.CornerRadius = UDim.new(0, 3)
     accentCorner.Parent = accent
 
-    local iconLabel
-    if data.ImageId and data.ImageId ~= "" then
-        iconLabel = Instance.new("ImageLabel")
-        iconLabel.Image = "rbxassetid://" .. data.ImageId
-        iconLabel.BackgroundColor3 = Color3.fromRGB(40, 45, 60)
-    else
-        iconLabel = Instance.new("TextLabel")
-        iconLabel.Text = data.Icon
-        iconLabel.TextSize = 20
-        iconLabel.BackgroundTransparency = 1
-    end
-    iconLabel.Size = UDim2.new(0, 30, 0, 30)
-    iconLabel.Position = UDim2.new(0, 16, 0.5, -15)
+    local iconLabel = Instance.new("TextLabel")
+    iconLabel.Text = data.Icon
+    iconLabel.TextSize = 15
+    iconLabel.BackgroundTransparency = 1
+    iconLabel.Size = UDim2.new(0, 22, 0, 22)
+    iconLabel.Position = UDim2.new(0, 11, 0.5, -11)
     iconLabel.Parent = card
-    
-    local iconCorner = Instance.new("UICorner")
-    iconCorner.CornerRadius = UDim.new(0, 6)
-    iconCorner.Parent = iconLabel
 
     local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(0.5, -15, 0, 18)
-    nameLabel.Position = UDim2.new(0, 52, 0, 6)
+    nameLabel.Size = UDim2.new(0.55, -10, 0, 13)
+    nameLabel.Position = UDim2.new(0, 36, 0, 4)
     nameLabel.BackgroundTransparency = 1
     nameLabel.Text = data.DisplayName
     nameLabel.TextColor3 = Color3.fromRGB(235, 235, 240)
     nameLabel.TextXAlignment = Enum.TextXAlignment.Left
     nameLabel.Font = Enum.Font.GothamBold
-    nameLabel.TextSize = 12
+    nameLabel.TextSize = 10
     nameLabel.Parent = card
 
     local infoLabel = Instance.new("TextLabel")
-    infoLabel.Size = UDim2.new(0.5, -15, 0, 14)
-    infoLabel.Position = UDim2.new(0, 52, 0, 24)
+    infoLabel.Size = UDim2.new(0.55, -10, 0, 10)
+    infoLabel.Position = UDim2.new(0, 36, 0, 18)
     infoLabel.BackgroundTransparency = 1
     infoLabel.Text = data.Rarity .. " • " .. data.Price
     infoLabel.TextColor3 = Color3.fromRGB(140, 145, 160)
     infoLabel.TextXAlignment = Enum.TextXAlignment.Left
     infoLabel.Font = Enum.Font.Gotham
-    infoLabel.TextSize = 10
+    infoLabel.TextSize = 8
     infoLabel.Parent = card
 
     local statusDot = Instance.new("Frame")
-    statusDot.Size = UDim2.new(0, 6, 0, 6)
-    statusDot.Position = UDim2.new(1, -80, 0.5, -3)
+    statusDot.Size = UDim2.new(0, 5, 0, 5)
+    statusDot.Position = UDim2.new(1, -62, 0.5, -2.5)
     statusDot.BackgroundColor3 = Color3.fromRGB(240, 70, 70)
     statusDot.BorderSizePixel = 0
     statusDot.Parent = card
@@ -357,14 +383,14 @@ for meshId, data in pairs(trackedEggs) do
     dotCorner.Parent = statusDot
 
     local statusLabel = Instance.new("TextLabel")
-    statusLabel.Size = UDim2.new(0, 68, 0, 20)
-    statusLabel.Position = UDim2.new(1, -70, 0.5, -10)
+    statusLabel.Size = UDim2.new(0, 54, 0, 14)
+    statusLabel.Position = UDim2.new(1, -54, 0.5, -7)
     statusLabel.BackgroundTransparency = 1
     statusLabel.Text = "UNAVAILABLE"
     statusLabel.TextColor3 = Color3.fromRGB(150, 155, 170)
     statusLabel.TextXAlignment = Enum.TextXAlignment.Left
     statusLabel.Font = Enum.Font.GothamBold
-    statusLabel.TextSize = 8
+    statusLabel.TextSize = 7
     statusLabel.Parent = card
 
     card.MouseButton1Click:Connect(function()
@@ -377,7 +403,7 @@ for meshId, data in pairs(trackedEggs) do
             selectedTargetEggs[data.DisplayName] = true
             card.BackgroundColor3 = Color3.fromRGB(50, 80, 160) 
             cardStroke.Color = Color3.fromRGB(0, 255, 120)     
-            cardStroke.Thickness = 2.5
+            cardStroke.Thickness = 2
         end
     end)
 
@@ -402,6 +428,95 @@ pickupBtn.MouseButton1Click:Connect(function()
     end
 end)
 
+-- =========================================================
+-- NOCLIP / TELEPORT HELPERS
+-- =========================================================
+local function setNoclip(state)
+    local char = player.Character
+    if not char then return end
+    for _, part in ipairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = not state
+        end
+    end
+end
+
+local function refreshNoclip()
+    setNoclip(teleportToEggEnabled or teleportToPlotEnabled)
+end
+
+local function getMyPlot()
+    local candidateNames = {"Plots", "Plot", "Ranches", "Ranch", "Bases", "Base"}
+    local folder = nil
+    for _, n in ipairs(candidateNames) do
+        local f = Workspace:FindFirstChild(n)
+        if f then folder = f break end
+    end
+    if not folder then return nil end
+
+    for _, plot in ipairs(folder:GetChildren()) do
+        if string.find(plot.Name, player.Name, 1, true) then return plot end
+        if player.DisplayName and string.find(plot.Name, player.DisplayName, 1, true) then return plot end
+
+        local owner = plot:FindFirstChild("Owner") or plot:FindFirstChild("Player") or plot:FindFirstChild("OwnerValue")
+        if owner then
+            if owner:IsA("ObjectValue") and owner.Value == player then return plot end
+            if owner:IsA("StringValue") and (owner.Value == player.Name or owner.Value == player.DisplayName) then return plot end
+        end
+
+        for _, d in ipairs(plot:GetDescendants()) do
+            if d:IsA("ObjectValue") and d.Value == player then return plot end
+        end
+
+        for _, d in ipairs(plot:GetDescendants()) do
+            if d:IsA("TextLabel") and (d.Text == player.Name or d.Text == player.DisplayName) then return plot end
+        end
+    end
+    return nil
+end
+
+local function getPlotSpawnPosition(plot)
+    if not plot then return nil end
+    local spawnPart = plot:FindFirstChild("Spawn", true) or plot:FindFirstChild("SpawnLocation", true)
+    if spawnPart and spawnPart:IsA("BasePart") then
+        return spawnPart.Position + Vector3.new(0, 5, 0)
+    end
+    if plot:IsA("Model") then
+        local ok, pivot = pcall(function() return plot:GetPivot() end)
+        if ok and pivot then return pivot.Position + Vector3.new(0, 5, 0) end
+    end
+    local anyPart = plot:FindFirstChildWhichIsA("BasePart", true)
+    if anyPart then return anyPart.Position + Vector3.new(0, 5, 0) end
+    return nil
+end
+
+tpEggBtn.MouseButton1Click:Connect(function()
+    teleportToEggEnabled = not teleportToEggEnabled
+    if teleportToEggEnabled then
+        tpEggBtn.Text = "⚡ TP Egg: ON"
+        tpEggBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 80)
+    else
+        tpEggBtn.Text = "⚡ TP Egg: OFF"
+        tpEggBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
+    end
+    refreshNoclip()
+end)
+
+tpPlotBtn.MouseButton1Click:Connect(function()
+    teleportToPlotEnabled = not teleportToPlotEnabled
+    if teleportToPlotEnabled then
+        tpPlotBtn.Text = "🏠 TP Plot: ON"
+        tpPlotBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 80)
+    else
+        tpPlotBtn.Text = "🏠 TP Plot: OFF"
+        tpPlotBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
+    end
+    refreshNoclip()
+end)
+
+-- =========================================================
+-- DRAGGING
+-- =========================================================
 local dragging, dragInput, dragStart, startPos
 local function update(input, frame)
     local delta = input.Position - dragStart
@@ -447,7 +562,12 @@ miniIcon.MouseButton1Click:Connect(function()
     mainFrame.Visible = true
 end)
 
--- ESP & TRACKING LOGIC (MULTI-EGG)
+-- =========================================================
+-- ESP & TRACKING LOGIC
+-- =========================================================
+local currentFoundEggs = {}
+local cachedPlotPos = nil
+
 local function extractId(str)
     if not str or str == "" then return nil end
     return string.match(str, "%d+")
@@ -548,10 +668,10 @@ local function applyESPToEgg(eggInst, displayName)
     nameLabel.Parent = billboard
 end
 
--- BACKGROUND TRACKER & RENDER LOOP
+-- BACKGROUND TRACKER
 task.spawn(function()
     while task.wait(0.5) do
-        local foundEggsMap = {} 
+        local foundEggsMap = {}
         
         for _, obj in ipairs(Workspace:GetDescendants()) do
             local displayName = checkEggByMesh(obj)
@@ -559,6 +679,8 @@ task.spawn(function()
                 foundEggsMap[displayName] = obj
             end
         end
+
+        currentFoundEggs = foundEggsMap
 
         for displayName, ui in pairs(eggUI) do
             if foundEggsMap[displayName] then
@@ -598,12 +720,29 @@ task.spawn(function()
     end
 end)
 
+-- PLOT CACHE REFRESHER
+task.spawn(function()
+    while task.wait(2) do
+        if teleportToPlotEnabled then
+            local plot = getMyPlot()
+            cachedPlotPos = getPlotSpawnPosition(plot)
+        end
+    end
+end)
+
+-- MAIN RENDER LOOP
 RunService.RenderStepped:Connect(function()
     local char = player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChildOfClass("Humanoid")
     
     if hrp then
+        if teleportToEggEnabled or teleportToPlotEnabled then
+            for _, p in ipairs(char:GetDescendants()) do
+                if p:IsA("BasePart") then p.CanCollide = false end
+            end
+        end
+
         if not hrp:FindFirstChild("PlayerRadarAtt") then
             local att = Instance.new("Attachment")
             att.Name = "PlayerRadarAtt"
@@ -611,7 +750,6 @@ RunService.RenderStepped:Connect(function()
         end
         local playerAtt = hrp:FindFirstChild("PlayerRadarAtt")
 
-        -- REVISED ARROW ESP UI SETUP
         local arrowGui = hrp:FindFirstChild("NavArrowGui")
         if not arrowGui then
             arrowGui = Instance.new("BillboardGui")
@@ -735,14 +873,49 @@ RunService.RenderStepped:Connect(function()
             end
         end
 
-        if autoPickupEnabled and hum and hum.Health > 0 and closestAdornee then
-            if closestDist > 5 then
-                hum:MoveTo(closestAdornee.Position)
+        -- TELEPORT TO EGG
+        if teleportToEggEnabled then
+            local nearestEggPos = nil
+            local nearestEggDist = math.huge
+            for _, eggInst in pairs(currentFoundEggs) do
+                if eggInst and eggInst.Parent then
+                    local ad = getAdornee(eggInst)
+                    if ad then
+                        local d = (ad.Position - hrp.Position).Magnitude
+                        if d < nearestEggDist then
+                            nearestEggDist = d
+                            nearestEggPos = ad.Position
+                        end
+                    end
+                end
+            end
+            if nearestEggPos then
+                hrp.CFrame = CFrame.new(nearestEggPos + Vector3.new(0, 3, 0))
+            end
+        end
+
+        -- TELEPORT TO PLOT
+        if teleportToPlotEnabled then
+            if not cachedPlotPos then
+                local plot = getMyPlot()
+                cachedPlotPos = getPlotSpawnPosition(plot)
+            end
+            if cachedPlotPos then
+                hrp.CFrame = CFrame.new(cachedPlotPos)
+            end
+        end
+
+        -- Auto pickup
+        if autoPickupEnabled and hum and hum.Health > 0 and not teleportToEggEnabled and not teleportToPlotEnabled then
+            if closestAdornee then
+                if closestDist > 5 then
+                    hum:MoveTo(closestAdornee.Position)
+                else
+                    hum:MoveTo(hrp.Position)
+                end
             else
                 hum:MoveTo(hrp.Position)
             end
-        elseif autoPickupEnabled and hum and hum.Health > 0 and not closestAdornee then
-            hum:MoveTo(hrp.Position)
         end
     end
 end)
@@ -763,5 +936,6 @@ exitBtn.MouseButton1Click:Connect(function()
             if arrowGui then arrowGui:Destroy() end
         end
     end
+    setNoclip(false)
     screenGui:Destroy()
 end)
