@@ -17,25 +17,26 @@ local trackedEggs = {
     ["99624357990460"] = {DisplayName = "Cherub Egg", Icon = "😇", ImageId = "", Price = "1T", Rarity = "Ethereal", Color = Color3.fromRGB(255, 255, 100)}
 }
 
-local selectedTargetEggs = {} 
-local activeEggs = {}         
+local selectedTargetEggs = {}
+local activeEggs = {}
 local currentEspMode = "Straight"
-local espModes = {"Straight", "Arrow"} 
+local espModes = {"Straight", "Arrow"}
 local currentEspIndex = 1
 local autoPickupEnabled = false
 local notifiedEggs = {}
 
--- AUTO PICKUP STATE VARIABLES
-local autoPickupState = "Idle" -- "Idle", "ToEgg", "ToPlot"
+-- AUTO PICKUP STATE
+local autoPickupState = "Idle"
 local targetEgg = nil
 local flySpeed = 150
 local noclipActive = false
 local pickupCooldown = 0
 local eggTimer = 0
+local plotMissingTimer = 0   -- NEW: prevents getting stuck in ToPlot
 
-local excludePaths = {"Plots", "Plot", "Ranch", "Backpack", "Base", "Farm", "House"} 
+local excludePaths = {"Plots", "Plot", "Ranch", "Backpack", "Base", "Farm", "House"}
 
--- CREATE MODERN AESTHETIC GUI
+-- GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "EggRadarUI"
 screenGui.ResetOnSpawn = false
@@ -55,7 +56,7 @@ if not success then
     screenGui.Parent = player:WaitForChild("PlayerGui")
 end
 
--- TOP CENTER RARE NOTIFICATION
+-- NOTIFICATION
 local notifFrame = Instance.new("Frame")
 notifFrame.Size = UDim2.new(0, 320, 0, 70)
 notifFrame.Position = UDim2.new(0.5, -160, 0, -100)
@@ -106,11 +107,11 @@ local notifThread = nil
 local function showTopNotif(name)
     local data = nil
     for _, d in pairs(trackedEggs) do
-        if d.DisplayName == name then data = d break end
+        if d.DisplayName == name then data = d; break end
     end
     if not data then return end
 
-    if notifThread then task.cancel(notifThread) end
+    if notifThread then pcall(task.cancel, notifThread) end
 
     notifIcon.Text = data.Icon
     notifTitle.Text = name .. " SPAWNED!"
@@ -120,7 +121,7 @@ local function showTopNotif(name)
 
     notifFrame.Position = UDim2.new(0.5, -160, 0, -100)
     TweenService:Create(notifFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -160, 0, 20)}):Play()
-    
+
     pcall(function()
         local snd = Instance.new("Sound")
         snd.SoundId = "rbxassetid://4590660214"
@@ -136,7 +137,7 @@ local function showTopNotif(name)
     end)
 end
 
--- MINIMIZED ICON
+-- MINI ICON
 local miniIcon = Instance.new("TextButton")
 miniIcon.Size = UDim2.new(0, 50, 0, 50)
 miniIcon.Position = UDim2.new(0.03, 0, 0.3, 0)
@@ -313,11 +314,11 @@ for meshId, data in pairs(trackedEggs) do
     card.AutoButtonColor = false
     card.Text = ""
     card.Parent = scrollFrame
-    
+
     local cardCorner = Instance.new("UICorner")
     cardCorner.CornerRadius = UDim.new(0, 8)
     cardCorner.Parent = card
-    
+
     local cardStroke = Instance.new("UIStroke")
     cardStroke.Color = Color3.fromRGB(60, 65, 80)
     cardStroke.Thickness = 1
@@ -329,7 +330,7 @@ for meshId, data in pairs(trackedEggs) do
     accent.BackgroundColor3 = data.Color
     accent.BorderSizePixel = 0
     accent.Parent = card
-    
+
     local accentCorner = Instance.new("UICorner")
     accentCorner.CornerRadius = UDim.new(0, 4)
     accentCorner.Parent = accent
@@ -348,7 +349,7 @@ for meshId, data in pairs(trackedEggs) do
     iconLabel.Size = UDim2.new(0, 30, 0, 30)
     iconLabel.Position = UDim2.new(0, 16, 0.5, -15)
     iconLabel.Parent = card
-    
+
     local iconCorner = Instance.new("UICorner")
     iconCorner.CornerRadius = UDim.new(0, 6)
     iconCorner.Parent = iconLabel
@@ -405,8 +406,8 @@ for meshId, data in pairs(trackedEggs) do
             cardStroke.Thickness = 1
         else
             selectedTargetEggs[data.DisplayName] = true
-            card.BackgroundColor3 = Color3.fromRGB(50, 80, 160) 
-            cardStroke.Color = Color3.fromRGB(0, 255, 120)     
+            card.BackgroundColor3 = Color3.fromRGB(50, 80, 160)
+            cardStroke.Color = Color3.fromRGB(0, 255, 120)
             cardStroke.Thickness = 2.5
         end
     end)
@@ -434,8 +435,11 @@ pickupBtn.MouseButton1Click:Connect(function()
         autoPickupState = "Idle"
         noclipActive = false
         targetEgg = nil
-        local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+        local char = player.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
         if hum then hum.PlatformStand = false end
+        if hrp then hrp.AssemblyLinearVelocity = Vector3.zero end
     end
 end)
 
@@ -484,13 +488,14 @@ miniIcon.MouseButton1Click:Connect(function()
     mainFrame.Visible = true
 end)
 
--- HELPER FUNCTIONS
+-- HELPERS
 local function extractId(str)
     if not str or str == "" then return nil end
     return string.match(str, "%d+")
 end
 
 local function getAdornee(obj)
+    if not obj then return nil end
     if obj:IsA("BasePart") then return obj end
     if obj:IsA("Model") then
         if obj.PrimaryPart then return obj.PrimaryPart end
@@ -501,13 +506,13 @@ end
 
 local function checkEggByMesh(obj)
     if not (obj:IsA("BasePart") or obj:IsA("Model")) then return nil end
-    
+
     local path = obj:GetFullName()
     for _, exclude in ipairs(excludePaths) do
         if string.find(path, exclude) then return nil end
     end
     if player.Character and obj:IsDescendantOf(player.Character) then return nil end
-    
+
     if obj:IsA("MeshPart") then
         local meshId = extractId(obj.MeshId)
         if meshId and trackedEggs[meshId] then return trackedEggs[meshId].DisplayName end
@@ -520,62 +525,91 @@ local function checkEggByMesh(obj)
     return nil
 end
 
--- Aggressively fire all interactions
+-- FIX: each interaction is pcall'd individually so one failure doesn't stop the rest.
+-- Also sets prompt properties BEFORE firing so the prompt is guaranteed to work.
 local function fireInteractions(obj)
-    if not obj then return end
-    pcall(function()
-        for _, child in ipairs(obj:GetDescendants()) do
-            if child:IsA("ProximityPrompt") and child.Enabled then
-                fireproximityprompt(child, 0)
-            elseif child:IsA("ClickDetector") then
-                fireclickdetector(child)
-            elseif child:IsA("TextButton") then
-                pcall(function()
-                    local connections = getconnections(child.MouseButton1Click)
-                    for _, conn in ipairs(connections) do
-                        conn:Fire()
-                    end
-                    child:Activate()
-                end)
-            end
+    if not obj or not obj.Parent then return end
+    for _, child in ipairs(obj:GetDescendants()) do
+        if child:IsA("ProximityPrompt") and child.Enabled then
+            pcall(function()
+                child.HoldDuration = 0
+                child.MaxActivationDistance = 100
+                child.RequiresLineOfSight = false
+                if fireproximityprompt then
+                    fireproximityprompt(child)
+                end
+            end)
+        elseif child:IsA("ClickDetector") then
+            pcall(function()
+                if fireclickdetector then
+                    fireclickdetector(child)
+                end
+            end)
         end
-    end)
+    end
+    -- Some games attach the prompt directly to the adornee, so also try that.
+    if obj:IsA("ProximityPrompt") then
+        pcall(function()
+            obj.HoldDuration = 0
+            obj.MaxActivationDistance = 100
+            obj.RequiresLineOfSight = false
+            if fireproximityprompt then fireproximityprompt(obj) end
+        end)
+    end
 end
 
--- Deep search for player plot/ranch
+-- FIX: case-insensitive owner match + more attribute names for compatibility.
 local function findPlayerPlot()
-    local pName = player.Name
+    local pName = player.Name:lower()
+    local pDisplay = player.DisplayName:lower()
     local pId = tostring(player.UserId)
-    
+
     local function isOwner(obj)
-        if obj.Name == pName or obj.Name == pId then return true end
-        if obj:GetAttribute("Owner") == pName or obj:GetAttribute("Owner") == pId then return true end
+        local n = obj.Name:lower()
+        if n == pName or n == pDisplay or obj.Name == pId then return true end
+        for _, attrName in ipairs({"Owner", "Player", "OwnerName", "UserId", "PlayerId"}) do
+            local a = obj:GetAttribute(attrName)
+            if a ~= nil then
+                local s = tostring(a):lower()
+                if s == pName or s == pDisplay or tostring(a) == pId then return true end
+            end
+        end
         local ownerVal = obj:FindFirstChild("Owner")
-        if ownerVal and ownerVal:IsA("StringValue") and (ownerVal.Value == pName or ownerVal.Value == pId) then return true end
+        if ownerVal and (ownerVal:IsA("StringValue") or ownerVal:IsA("ObjectValue")) then
+            local v = tostring(ownerVal.Value):lower()
+            if v == pName or v == pDisplay or tostring(ownerVal.Value) == pId then return true end
+        end
         return false
     end
-    
-    local searchFolders = {"Plots", "Ranches", "Ranch", "Farm", "Base", "Houses", "House", "PlayerPlots"}
+
+    local searchFolders = {"Plots", "Ranches", "Ranch", "Farm", "Base", "Houses", "House", "PlayerPlots", "PlotsFolder"}
     for _, folderName in ipairs(searchFolders) do
         local folder = Workspace:FindFirstChild(folderName)
         if folder then
             for _, plot in ipairs(folder:GetChildren()) do
                 if isOwner(plot) then
-                    local base = plot:FindFirstChild("Base") or plot:FindFirstChild("PlotBase") or plot:FindFirstChildWhichIsA("BasePart", true)
+                    local base = plot:FindFirstChild("Base")
+                        or plot:FindFirstChild("PlotBase")
+                        or plot:FindFirstChild("Floor")
+                        or plot:FindFirstChildWhichIsA("BasePart", true)
                     if base then return base end
                 end
             end
         end
     end
-    
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if (obj:IsA("Model") or obj:IsA("Folder")) and isOwner(obj) then
-            local base = obj:FindFirstChild("Base") or obj:FindFirstChild("PlotBase") or obj:FindFirstChildWhichIsA("BasePart", true)
-            if base then return base end
-        end
-    end
-    
     return nil
+end
+
+-- FIX: cache the plot lookup so we don't scan Workspace:GetDescendants() every frame.
+local cachedPlot = nil
+local plotCacheTime = 0
+local function getCachedPlot()
+    if cachedPlot and cachedPlot.Parent and (tick() - plotCacheTime) < 2 then
+        return cachedPlot
+    end
+    cachedPlot = findPlayerPlot()
+    plotCacheTime = tick()
+    return cachedPlot
 end
 
 local function clearESPForEgg(eggInst)
@@ -586,6 +620,8 @@ local function clearESPForEgg(eggInst)
         if tag then tag:Destroy() end
         local att = eggInst:FindFirstChild("RadarAtt")
         if att then att:Destroy() end
+        local beam = eggInst:FindFirstChild("RadarBeam")
+        if beam then beam:Destroy() end
     end
 end
 
@@ -595,7 +631,7 @@ local function applyESPToEgg(eggInst, displayName)
 
     local espColor = Color3.new(1, 1, 1)
     for _, data in pairs(trackedEggs) do
-        if data.DisplayName == displayName then espColor = data.Color break end
+        if data.DisplayName == displayName then espColor = data.Color; break end
     end
 
     local highlight = Instance.new("Highlight")
@@ -641,10 +677,10 @@ local function applyESPToEgg(eggInst, displayName)
     nameLabel.Parent = billboard
 end
 
--- BACKGROUND TRACKER
+-- TRACKER
 task.spawn(function()
     while task.wait(0.5) do
-        local foundEggsMap = {} 
+        local foundEggsMap = {}
         for _, obj in ipairs(Workspace:GetDescendants()) do
             local displayName = checkEggByMesh(obj)
             if displayName then
@@ -657,7 +693,7 @@ task.spawn(function()
                 ui.Status.Text = "AVAILABLE"
                 ui.Status.TextColor3 = Color3.fromRGB(60, 230, 120)
                 ui.Dot.BackgroundColor3 = Color3.fromRGB(60, 230, 120)
-                
+
                 if (displayName == "Cherub Egg" or displayName == "Blackhole Egg") and not notifiedEggs[displayName] then
                     showTopNotif(displayName)
                     notifiedEggs[displayName] = true
@@ -687,23 +723,26 @@ task.spawn(function()
     end
 end)
 
--- NOCLIP LOOP
+-- NOCLIP
 RunService.Stepped:Connect(function()
-    if player.Character then
-        for _, part in pairs(player.Character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide ~= (not noclipActive) then
-                part.CanCollide = not noclipActive
+    local char = player.Character
+    if not char then return end
+    for _, part in ipairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            local want = not noclipActive
+            if part.CanCollide ~= want then
+                part.CanCollide = want
             end
         end
     end
 end)
 
--- MAIN RENDER & FLIGHT LOGIC
+-- MAIN LOOP
 RunService.RenderStepped:Connect(function(dt)
     local char = player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChildOfClass("Humanoid")
-    
+
     if hrp and hum and hum.Health > 0 then
         if not hrp:FindFirstChild("PlayerRadarAtt") then
             local att = Instance.new("Attachment")
@@ -712,7 +751,7 @@ RunService.RenderStepped:Connect(function(dt)
         end
         local playerAtt = hrp:FindFirstChild("PlayerRadarAtt")
 
-        -- ARROW ESP UI SETUP
+        -- ARROW UI
         local arrowGui = hrp:FindFirstChild("NavArrowGui")
         if not arrowGui then
             arrowGui = Instance.new("BillboardGui")
@@ -730,7 +769,7 @@ RunService.RenderStepped:Connect(function(dt)
             baseCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
             baseCircle.BorderSizePixel = 0
             baseCircle.Parent = arrowGui
-            
+
             local baseCorner = Instance.new("UICorner")
             baseCorner.CornerRadius = UDim.new(1, 0)
             baseCorner.Parent = baseCircle
@@ -740,7 +779,7 @@ RunService.RenderStepped:Connect(function(dt)
             arrowImg.Size = UDim2.new(0, 60, 0, 60)
             arrowImg.Position = UDim2.new(0.5, -30, 0, -15)
             arrowImg.BackgroundTransparency = 1
-            arrowImg.Image = "rbxassetid://107233777" 
+            arrowImg.Image = "rbxassetid://107233777"
             arrowImg.ImageColor3 = Color3.fromRGB(0, 255, 120)
             arrowImg.Parent = arrowGui
 
@@ -762,7 +801,6 @@ RunService.RenderStepped:Connect(function(dt)
         local closestDist = math.huge
         local closestAdornee = nil
 
-        -- Process ESP
         for eggInst, eggName in pairs(activeEggs) do
             if eggInst and eggInst.Parent then
                 local adornee = getAdornee(eggInst)
@@ -797,7 +835,6 @@ RunService.RenderStepped:Connect(function(dt)
             end
         end
 
-        -- Arrow UI
         if arrowGui then arrowGui.Enabled = false end
         if currentEspMode == "Arrow" and closestAdornee and autoPickupState == "Idle" then
             arrowGui.Enabled = true
@@ -807,11 +844,11 @@ RunService.RenderStepped:Connect(function(dt)
             local target2D = Vector2.new(targetDir.X, targetDir.Z).Unit
             local angle = math.atan2(target2D.Y, target2D.X) - math.atan2(look2D.Y, look2D.X)
             local degrees = math.deg(angle)
-            
+
             local arrowImg = arrowGui:FindFirstChild("ArrowImage")
             local distText = arrowGui:FindFirstChild("DistText")
             local baseCircle = arrowGui:FindFirstChild("BaseCircle")
-            
+
             if arrowImg then
                 arrowImg.Rotation = -degrees
                 local dotProduct = look2D:Dot(target2D)
@@ -833,47 +870,42 @@ RunService.RenderStepped:Connect(function(dt)
         if autoPickupEnabled then
             hum.PlatformStand = true
             pickupCooldown = math.max(0, pickupCooldown - dt)
-            
+
             local targetPos = nil
             local arrivalDist = 3
-            
+
             if autoPickupState == "Idle" then
                 noclipActive = true
                 eggTimer = 0
+                plotMissingTimer = 0
                 if closestEggInst then
                     targetEgg = closestEggInst
                     autoPickupState = "ToEgg"
                 end
-            
+
             elseif autoPickupState == "ToEgg" then
                 if not targetEgg or not targetEgg.Parent then
-                    -- Egg disappeared (picked up manually or automatically)
                     autoPickupState = "ToPlot"
                     targetEgg = nil
                     eggTimer = 0
                 else
                     local adornee = getAdornee(targetEgg)
                     if adornee then
+                        -- FIX: use distance to the TARGET egg, not the global closest egg
+                        local toEggDist = (adornee.Position - hrp.Position).Magnitude
                         targetPos = adornee.Position + Vector3.new(0, 3, 0)
                         arrivalDist = 4
-                        
-                        if closestDist < 15 then
-                            -- Disable noclip when close to egg
-                            noclipActive = false
-                        else
-                            noclipActive = true
-                        end
-                        
-                        if closestDist < 8 then
+                        noclipActive = toEggDist >= 15
+
+                        if toEggDist < 8 then
                             eggTimer = eggTimer + dt
                             if pickupCooldown == 0 then
-                                -- Fire all possible interactions
                                 fireInteractions(targetEgg)
-                                fireInteractions(adornee)
+                                if adornee ~= targetEgg then
+                                    fireInteractions(adornee)
+                                end
                                 pickupCooldown = 0.5
                             end
-                            
-                            -- If we've been near the egg for 3 seconds, assume it's picked up
                             if eggTimer > 3 then
                                 autoPickupState = "ToPlot"
                                 targetEgg = nil
@@ -882,48 +914,50 @@ RunService.RenderStepped:Connect(function(dt)
                         else
                             eggTimer = 0
                         end
+                    else
+                        autoPickupState = "ToPlot"
+                        targetEgg = nil
+                        eggTimer = 0
                     end
                 end
-            
+
             elseif autoPickupState == "ToPlot" then
-                noclipActive = true -- Re-enable noclip for flight home
+                noclipActive = true
                 eggTimer = 0
-                local plotBase = findPlayerPlot()
+                -- FIX: use cached plot lookup so we don't scan all of Workspace every frame
+                local plotBase = getCachedPlot()
                 if plotBase then
+                    plotMissingTimer = 0
                     targetPos = plotBase.Position + Vector3.new(0, 10, 0)
                     arrivalDist = 10
-                    
                     if (targetPos - hrp.Position).Magnitude < 12 then
-                        -- Arrived at plot, fire drop off interactions
                         fireInteractions(plotBase)
                         autoPickupState = "Idle"
                     end
                 else
-                    -- If no plot found, just hover
+                    -- FIX: if no plot found for 5 seconds, stop hovering and reset
+                    plotMissingTimer = plotMissingTimer + dt
                     targetPos = nil
+                    if plotMissingTimer > 5 then
+                        autoPickupState = "Idle"
+                        plotMissingTimer = 0
+                    end
                 end
             end
-            
-            -- VELOCITY FLIGHT LOGIC (Prevents underground bug)
+
             if targetPos then
                 local dir = (targetPos - hrp.Position)
                 local dist = dir.Magnitude
-                
                 if dist > arrivalDist then
-                    -- Push character towards target smoothly
                     hrp.AssemblyLinearVelocity = dir.Unit * flySpeed
-                    
-                    -- Keep character upright and looking in the direction of movement
                     local lookAtPos = Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z)
                     if (lookAtPos - hrp.Position).Magnitude > 0.5 then
                         hrp.CFrame = CFrame.lookAt(hrp.Position, lookAtPos)
                     end
                 else
-                    -- Stop moving when arrived
                     hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
                 end
             else
-                -- Hover in place
                 hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
             end
         else
@@ -933,13 +967,12 @@ RunService.RenderStepped:Connect(function(dt)
     end
 end)
 
--- CLEANUP ON EXIT
 exitBtn.MouseButton1Click:Connect(function()
     for eggInst, _ in pairs(activeEggs) do
         clearESPForEgg(eggInst)
     end
     activeEggs = {}
-    
+
     local char = player.Character
     if char then
         local hrp = char:FindFirstChild("HumanoidRootPart")
@@ -948,9 +981,10 @@ exitBtn.MouseButton1Click:Connect(function()
             if att then att:Destroy() end
             local arrowGui = hrp:FindFirstChild("NavArrowGui")
             if arrowGui then arrowGui:Destroy() end
+            hrp.AssemblyLinearVelocity = Vector3.zero
         end
         local hum = char:FindFirstChildOfClass("Humanoid")
         if hum then hum.PlatformStand = false end
     end
     screenGui:Destroy()
-end) 
+end)
