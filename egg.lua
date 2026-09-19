@@ -6,14 +6,14 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 
--- EGG DATABASE
+-- EGG DATABASE (ADDED YOUR IMAGE IDs)
 local trackedEggs = {
     ["152975769"] = {DisplayName = "Flaming Egg", Icon = "🔥", ImageId = "", Price = "Rare", Rarity = "Fire", Color = Color3.fromRGB(255, 120, 30)},
-    ["70549049033717"] = {DisplayName = "Sinister Egg", Icon = "😈", ImageId = "", Price = "Secret", Rarity = "Dark", Color = Color3.fromRGB(220, 40, 60)},
-    ["131792796847596"] = {DisplayName = "Galaxy Egg", Icon = "🌌", ImageId = "", Price = "1.5B", Rarity = "Divine", Color = Color3.fromRGB(180, 100, 255)},
+    ["70549049033717"] = {DisplayName = "Sinister Egg", Icon = "😈", ImageId = "101746101345717", Price = "Secret", Rarity = "Dark", Color = Color3.fromRGB(220, 40, 60)},
+    ["131792796847596"] = {DisplayName = "Galaxy Egg", Icon = "🌌", ImageId = "101746101345717", Price = "1.5B", Rarity = "Divine", Color = Color3.fromRGB(180, 100, 255)},
     ["95155753812330"] = {DisplayName = "Soul Egg", Icon = "👻", ImageId = "", Price = "Ethereal", Rarity = "Ghost", Color = Color3.fromRGB(120, 220, 255)},
-    ["109698896973127"] = {DisplayName = "Skull Egg", Icon = "💀", ImageId = "", Price = "Dark", Rarity = "Bone", Color = Color3.fromRGB(180, 180, 180)},
-    ["6932488731"] = {DisplayName = "Blackhole Egg", Icon = "🕳️", ImageId = "", Price = "100B", Rarity = "Ethereal", Color = Color3.fromRGB(80, 80, 80)},
+    ["109698896973127"] = {DisplayName = "Skull Egg", Icon = "💀", ImageId = "101746101345717", Price = "Dark", Rarity = "Bone", Color = Color3.fromRGB(180, 180, 180)},
+    ["6932488731"] = {DisplayName = "Blackhole Egg", Icon = "🕳️", ImageId = "101746101345717", Price = "100B", Rarity = "Ethereal", Color = Color3.fromRGB(80, 80, 80)},
     ["99624357990460"] = {DisplayName = "Cherub Egg", Icon = "😇", ImageId = "", Price = "1T", Rarity = "Ethereal", Color = Color3.fromRGB(255, 255, 100)}
 }
 
